@@ -15,26 +15,26 @@ def read_no_pkts(filename):
         peer_evolution.append(value)
     return peer_evolution
 
-peer_evolution_1_df = pd.read_csv(FOLDER_NAME+"group-suppression-US-2-lambda-1.9.txt",'\n')
-peer_evolution_2_df = pd.read_csv(FOLDER_NAME+"group-suppression-US-2-lambda-2.5.txt",'\n')
-peer_evolution_3_df = pd.read_csv(FOLDER_NAME+"group-suppression-US-2-lambda-4.0.txt",'\n')
-peer_evolution_4_df = pd.read_csv(FOLDER_NAME+"group-suppression-US-2-lambda-100.txt",'\n')
+list1 = [ "group-suppression-US-2-lambda-1.9.txt", "group-suppression-US-2-lambda-2.5.txt", "group-suppression-US-2-lambda-4.0.txt","group-suppression-US-2-lambda-100.txt" ]
+labels1 =[ r"$U_s=2, \lambda=1.9$", r"$U_s=2, \lambda=2.5$", r"$U_s=2, \lambda=4.0$", r"$U_s=2, \lambda=100$"]
 
-fig = plt.figure(figsize=(14, 6))
-ax1 = fig.add_subplot(2, 2, 1)
-ax2 = fig.add_subplot(2, 2, 2)
-ax3 = fig.add_subplot(2, 2, 3)
-ax4 = fig.add_subplot(2, 2, 4)
+list2 = ["Decline-Most-Popular-Us-2-lambda-1.9.txt" ,"Decline-Most-Popular-Us-2-lambda-4.txt" , "Decline-Most-Popular-Us-2-lambda-50.txt" ,"Decline-Most-Popular-Us-2-lambda-100.txt", ]
+labels2 =[ r"$U_s=2, \lambda=1.9$", r"$U_s=2, \lambda=4$", r"$U_s=2, \lambda=50$", r"$U_s=2, \lambda=100$"]
+peer_evolution = []
+for file_name in list2:
+    peer_evolution.append(pd.read_csv(FOLDER_NAME+file_name,'\n'))
 
-ax1.plot(peer_evolution_1_df.values,'b-',alpha=0.7,label=r"$U_s=2, \lambda=1.9$")
-ax2.plot(peer_evolution_2_df.values,'g-',alpha=0.8,label=r"$U_s=2, \lambda=2.5$")
-ax3.plot(peer_evolution_3_df.values,'r-',alpha=0.7,label=r"$U_s=2, \lambda=4.0$")
-ax4.plot(peer_evolution_4_df.values,'k-',alpha=0.9,label=r"$U_s=2, \lambda=100$")
+fig,((ax1,ax2),(ax3,ax4))= plt.subplots(2,2,figsize=(14,6))
+axes = [ax1,ax2,ax3,ax4]
+colors=['red','blue','green','black']
 
-for ax in [ax1,ax2,ax3,ax4]:
+for i in range(4):
+    axes[i].plot(peer_evolution[i].values,'-',color=colors[i],alpha=0.7,label=labels2[i])
+    ax = axes[i]
     ax.grid(True)
     ax.set_xlabel("Time")
     ax.legend(loc=2)
     ax.set_ylabel("Number of Peers")
-plt.suptitle('Group Suppression (m=10)',size=18)
-plt.savefig("peer-evolution-group-sp.pdf",dpi=300)
+
+plt.suptitle('Decline Most Popular Pkt (m=10)',size=18)
+plt.savefig("Decline-Popular-Pkt.pdf",dpi=300)
