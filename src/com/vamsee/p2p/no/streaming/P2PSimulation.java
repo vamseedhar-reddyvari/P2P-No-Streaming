@@ -130,7 +130,7 @@ public class P2PSimulation {
         // Generate sojourn times for each poisson random variable and execute the event with least sojourn time
 
 
-        Ticks = 2*(int) pow(10,5);
+        Ticks = 4*(int) pow(10,5);
         for(int t = 0; t< Ticks; t++){
             RANDOM = true;
 //            CHAIN_POLICY = true;
@@ -139,8 +139,8 @@ public class P2PSimulation {
                 RANDOM = false;
                 GROUPSUPP = false;
                 RAREST = false;
-                DECLINE_POPULAR = true;
-                CHAIN_POLICY = false;
+                DECLINE_POPULAR = false;
+                CHAIN_POLICY = true;
             }
             double [] peersTicks = new double[NumberOfPeers];
             double minTick = 100;

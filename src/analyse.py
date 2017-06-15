@@ -22,7 +22,7 @@ if(BUFFEREVOL):
     plt.figure()
     plt.hold(True)
     for elem in names_array:
-        plt.plot(pd.ewma(buffer_df[elem],halflife=10))
+        plt.plot(pd.ewma(buffer_df[elem],halflife=1))
     plt.ylabel("Bufer Marginal Distribution")
     plt.savefig("buffer_evolution.pdf",dpi=300);
 
