@@ -6,10 +6,10 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 	// write your code here
-        double Us = 2;
+        double Us = 1;
         double lambda = 4;
-        double lambda_p = 1;
-        P2PSimulation simulation = new P2PSimulation(Us, lambda, lambda_p);
+        double mu= 1;
+        P2PSimulation simulation = new P2PSimulation(Us, lambda, mu);
         simulation.Run();
     }
 }

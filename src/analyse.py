@@ -26,7 +26,7 @@ if(BUFFEREVOL):
     plt.ylabel("Bufer Marginal Distribution")
     plt.savefig("buffer_evolution.pdf",dpi=300);
 
-NOPKTS = False
+NOPKTS = True
 if (NOPKTS):
     list1 = [ "group-suppression-US-2-lambda-1.9.txt", "group-suppression-US-2-lambda-2.5.txt", "group-suppression-US-2-lambda-4.0.txt","group-suppression-US-2-lambda-100.txt" ]
     labels1 =[ r"$U_s=2, \lambda=1.9$", r"$U_s=2, \lambda=2.5$", r"$U_s=2, \lambda=4.0$", r"$U_s=2, \lambda=100$"]
