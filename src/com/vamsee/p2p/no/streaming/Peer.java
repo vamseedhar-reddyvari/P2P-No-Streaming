@@ -10,12 +10,29 @@ public class Peer {
     public static int NumberOfPieces = 2;
     public static int[] FullBuffer = new int[NumberOfPieces];
     public int[] Buffer;
+    public double time;
+    public Peer(boolean OneClub){
+        Arrays.fill(FullBuffer,1);
+        Buffer = new int[NumberOfPieces];
+        for(int i = 0; i< NumberOfPieces; i++){
+            if(OneClub){
+                Buffer[i] = 1;
+            }
+            else{
+                Buffer[i] = 0;
+            }
+        }
+        Buffer[0] = 0;
+        time = 0;
+    }
     public Peer(){
         Arrays.fill(FullBuffer,1);
         Buffer = new int[NumberOfPieces];
         for(int i = 0; i< NumberOfPieces; i++){
             Buffer[i] = 0;
         }
+        Buffer[0] = 0;
+        time = 0;
     }
 
 }
