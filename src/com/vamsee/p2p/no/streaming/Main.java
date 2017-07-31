@@ -9,8 +9,10 @@ public class Main {
         double U = 1;
         double lambda = 4;
         double mu= U;
-        P2PSimulation simulation = new P2PSimulation(U, lambda, mu);
-        String[] policyList = {"Rarest", "Random", "Friedman", "ModeSup", "DistrModeSup", "CommonChunk", "GroupSup"};
+        String outputDir = args[0];
+        P2PSimulation simulation = new P2PSimulation(U, lambda, mu, outputDir);
+//        String[] policyList = { "Random", "Rarest", "Friedman", "ModeSup", "DistrModeSup", "CommonChunk", "GroupSup"};
+        String[] policyList = { "Friedman", "ModeSup", "DistrModeSup", "CommonChunk", "GroupSup"};
         for(String policy : policyList){
             simulation.Run(policy);
         }

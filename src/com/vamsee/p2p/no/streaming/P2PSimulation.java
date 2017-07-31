@@ -23,6 +23,7 @@ public class P2PSimulation {
     private int NumberOfPieces; // Buffer length
     private boolean RANDOM, RAREST,  GROUPSUPP , MODE_SUPPRESSION, DISTR_MODE_SUPPRESSION, CHAIN_POLICY, FRIEDMAN, COMMONCHUNK;
     private PrintWriter writerNoPeers, writerDistribution, writerTime;
+    private String outputDir;
 
     // Meta Variables
     /* - At any time sum of bufferDistributionCount should be equal to Number of Peers.
@@ -62,6 +63,7 @@ public class P2PSimulation {
     }
 
     private void initializeEmptyPeers(){
+        this.NumberOfPeers = 500; //Lets start with 500 peers
         this.ListPeers = new ArrayList<Peer>();
         for(int i = 0; i<this.NumberOfPeers; i++){
             Peer newPeer = new Peer();
@@ -83,7 +85,7 @@ public class P2PSimulation {
         }
     }
     //Constructor
-    public P2PSimulation(double Us, double lambda, double lambda_p) throws IOException{
+    public P2PSimulation(double Us, double lambda, double lambda_p, String outputDir) throws IOException{
 
         // System Variables
         this.NumberOfPieces = Peer.NumberOfPieces;
@@ -98,10 +100,11 @@ public class P2PSimulation {
         this.DISTR_MODE_SUPPRESSION = false;
         this.FRIEDMAN = false;
         this.COMMONCHUNK = false;
+        this.outputDir = outputDir;
 
         //Initialize Peers
-        initializeOneClubPeers();
-//        initializeEmptyPeers();
+//        initializeOneClubPeers();
+        initializeEmptyPeers();
 
         // Utility Objects
         rand = new Random(); //initialize random
@@ -118,7 +121,7 @@ public class P2PSimulation {
 
 
         System.out.println("Running "+policy+" Policy....");
-        Ticks = 4*(int) pow(10,5);
+        Ticks = 8*(int) pow(10,5);
 
         if(policy.equals("Rarest")) {
             RAREST = true;
@@ -130,9 +133,9 @@ public class P2PSimulation {
         else if(policy.equals("Friedman")) FRIEDMAN= true;
         else if(policy.equals("CommonChunk")) COMMONCHUNK= true;
 
-        writerNoPeers = new PrintWriter("output/"+"k"+NumberOfPieces+"lambda4/"+policy+"_"+"peers.txt", "UTF-8");
-        writerDistribution = new PrintWriter("output/"+"k"+NumberOfPieces+"lambda4/"+policy+"_"+"distribution.txt", "UTF-8");
-        writerTime = new PrintWriter("output/"+"k"+NumberOfPieces+"lambda4/"+policy+"_"+"waitingTime.txt","UTF-8");
+        writerNoPeers = new PrintWriter(this.outputDir+"k"+NumberOfPieces+"lambda"+(int)this.lambda+"/"+policy+"_"+"peers.txt", "UTF-8");
+        writerDistribution = new PrintWriter(this.outputDir+"k"+NumberOfPieces+"lambda"+(int)this.lambda+"/"+policy+"_"+"distribution.txt", "UTF-8");
+        writerTime = new PrintWriter(this.outputDir+"k"+NumberOfPieces+"lambda"+(int)this.lambda+"/"+policy+"_"+"waitingTime.txt","UTF-8");
 
         for(int t = 0; t< Ticks; t++){
 
@@ -181,7 +184,8 @@ public class P2PSimulation {
         MODE_SUPPRESSION = false;
         DISTR_MODE_SUPPRESSION = false;
         FRIEDMAN = false;
-        initializeOneClubPeers();
+//        initializeOneClubPeers();
+        initializeEmptyPeers();
 
 
         return 0;
