@@ -68,3 +68,9 @@ fabric.properties
 *.rar
 
 *.txt
+
+*.pdf
+
+*.xml
+
+scripts/.idea/scripts.iml
