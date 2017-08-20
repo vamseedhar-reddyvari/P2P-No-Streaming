@@ -21,8 +21,8 @@ public class P2PSimulation {
     private int NumberOfPeers; // Total peers in the system
     private ArrayList<Peer> ListPeers; // List of all current peers
     private int NumberOfChunks; // Buffer length
-    private boolean RANDOM, RAREST,  GROUPSUPP , MODE_SUPPRESSION, DISTR_MODE_SUPPRESSION, CHAIN_POLICY, FRIEDMAN, COMMONCHUNK, RELAXEDMODESUP;
-    private PrintWriter writerNoPeers, writerDistribution, writerTime;
+    private boolean RANDOM, RAREST,  GROUPSUPP , MODE_SUPPRESSION, DISTR_MODE_SUPPRESSION, CHAIN_POLICY, FRIEDMAN, COMMONCHUNK, RELAXEDMODESUP, BOOSTEDRAREST, STRICTLOCALMODE;
+    private PrintWriter writerNoPeers, writerDistribution, writerTime, writerStarvations;
     private String outputDir;
     private boolean restirctToOnePeer ;
 
@@ -89,12 +89,14 @@ public class P2PSimulation {
     public P2PSimulation(double Us, double lambda, double lambda_p, String outputDir) throws IOException{
 
         // System Variables
-        this.restirctToOnePeer = true;
+        this.restirctToOnePeer = false;
         this.NumberOfChunks = Peer.NumberOfPieces;
         this.lambda_p = lambda_p;
         this.Us = Us;
         this.lambda = lambda;
         this.RANDOM = false;
+        this.BOOSTEDRAREST = false;
+        this.STRICTLOCALMODE= false;
         this.RAREST = false;
         this.GROUPSUPP = false;
         this.MODE_SUPPRESSION = false;
@@ -113,6 +115,8 @@ public class P2PSimulation {
         rand = new Random(); //initialize random
 
 
+        //Testing
+//        testMethods();
         // Print Simulation Parameters
 
         System.out.println("Lambda: "+this.lambda + ", m: "+this.NumberOfChunks);
@@ -133,7 +137,7 @@ public class P2PSimulation {
 
 
         System.out.println("Running "+policy+" Policy....");
-        Ticks = 4*(int) pow(10,5);
+        Ticks = 5*(int) pow(10,5);
 
         if(policy.equals("Rarest")) {
             RAREST = true;
@@ -145,10 +149,13 @@ public class P2PSimulation {
         else if(policy.equals("Friedman")) FRIEDMAN= true;
         else if(policy.equals("CommonChunk")) COMMONCHUNK= true;
         else if(policy.equals("RelaxedModeSup")) RELAXEDMODESUP = true;
+        else if(policy.equals("BoostedRarest")) BOOSTEDRAREST = true;
+        else if(policy.equals("StrictLocalMode")) STRICTLOCALMODE= true;
 
         writerNoPeers = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"peers.txt", "UTF-8");
         writerDistribution = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"distribution.txt", "UTF-8");
         writerTime = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"waitingTime.txt","UTF-8");
+        writerStarvations = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"starvations.txt","UTF-8");
 
         for(int t = 0; t< Ticks; t++){
 
@@ -176,21 +183,22 @@ public class P2PSimulation {
                 {
                     peer2PeerEvent(minTickIdx, peerContactTime);
                 }
-//                if (NumberOfPeers ==0) {break;}
             }
             else if ( seedContactTime<=peerArrivalTime && seedContactTime<=peerContactTime){
                 if (NumberOfPeers >0) {
                     seedTransferEvent(seedContactTime);
                 }
-//                if (NumberOfPeers ==0) {break;}
             }
         }
         writerNoPeers.close();
         writerDistribution.close();
         writerTime.close();
+        writerStarvations.close();
 
         //RESET
         RANDOM = false;
+        BOOSTEDRAREST = false;
+        STRICTLOCALMODE= false;
         RAREST = false;
         GROUPSUPP = false;
         COMMONCHUNK = false;
@@ -242,7 +250,12 @@ public class P2PSimulation {
         }
         else if(RELAXEDMODESUP){
             int pktIdx = peerRelaxedModeSuppresionPolicy(dstPeer, srcPeerIdx);
-//            int pktIdx = peerModeSuppresionPolicy(dstPeer, srcPeerIdx);
+        }
+        else if(BOOSTEDRAREST){
+            int pktIdx = peerBoostedRarestChunkPolicy(dstPeer, srcPeerIdx);
+        }
+        else if(STRICTLOCALMODE){
+            int pltIdx = peerStrictLocalModeSuppression(dstPeer, srcPeerIdx);
         }
         else{
             System.out.println("Peer Chunk Policy Not found");
@@ -281,7 +294,7 @@ public class P2PSimulation {
         updateTime(timeEpoch);
         int dstPeerIdx=0;
         Peer dstPeer = ListPeers.get(dstPeerIdx);
-        if (RAREST || RANDOM || MODE_SUPPRESSION || DISTR_MODE_SUPPRESSION || FRIEDMAN || RELAXEDMODESUP ||COMMONCHUNK) {
+        if (RAREST || RANDOM || MODE_SUPPRESSION || DISTR_MODE_SUPPRESSION || FRIEDMAN || RELAXEDMODESUP ||COMMONCHUNK || BOOSTEDRAREST || STRICTLOCALMODE) {
             dstPeerIdx = rand.nextInt(NumberOfPeers);
             dstPeer = ListPeers.get(dstPeerIdx);
         }
@@ -312,7 +325,8 @@ public class P2PSimulation {
             int pktIdx = seedModeSuppressionPolicy(dstPeer);
         }
         else if (DISTR_MODE_SUPPRESSION){
-            int pktIdx = distributedSeedDeclineMostPopularChunk(dstPeer);
+            int pktIdx = peerDistributedModeSuppression(dstPeer, -1);
+//            int pktIdx = distributedSeedDeclineMostPopularChunk(dstPeer);
         }
         else if(FRIEDMAN){
             int pktIdx = seedFriedmanPolicy(dstPeer);
@@ -323,6 +337,12 @@ public class P2PSimulation {
         else if(RELAXEDMODESUP){
             int pktIdx = peerRelaxedModeSuppresionPolicy(dstPeer,-1);
 //            int pktIdx = seedCommonChunkPolicy(dstPeer);
+        }
+        else if(BOOSTEDRAREST){
+            int pktIdx = peerBoostedRarestChunkPolicy(dstPeer,-1);
+        }
+        else if(STRICTLOCALMODE){
+            int pktIdx = peerStrictLocalModeSuppression(dstPeer,-1);
         }
         else{
             System.out.println("Seed Policy Not found");
@@ -394,6 +414,7 @@ public class P2PSimulation {
             boolean removed = removePeer(dstPeer );
             return pktIdx;
         }
+        checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
         return -1;
 
     }
@@ -489,6 +510,7 @@ public class P2PSimulation {
             }
 
         }
+        checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
         return -1;
 
     }
@@ -521,6 +543,61 @@ public class P2PSimulation {
             boolean removed = removePeer(dstPeer );
             return pktIdx;
         }
+        checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
+        return -1;
+
+    }
+    private int peerBoostedRarestChunkPolicy(Peer dstPeer, int srcIdx){
+        /*
+        - Transfers a useful packet from src to destination
+        - Returns index of the packet transmitted
+        - If no packet is transmitted returns -1
+        - Also update marginal and buffer distributions
+        */
+        int randomIdx1 = rand.nextInt(ListPeers.size() +1);
+        if(srcIdx ==-1) {
+            // Fix one source as seed
+            randomIdx1 = ListPeers.size();
+        }
+        int randomIdx2 = rand.nextInt(ListPeers.size()+1);
+        int randomIdx3 = rand.nextInt(ListPeers.size()+1);
+        int [] buffer1, buffer2, buffer3;
+        if (randomIdx1 < ListPeers.size()) buffer1 = ListPeers.get(randomIdx1).Buffer;
+        else buffer1 = Peer.FullBuffer;
+        if (randomIdx2 < ListPeers.size()) buffer2 = ListPeers.get(randomIdx2).Buffer;
+        else buffer2 = Peer.FullBuffer;
+        if (randomIdx3 < ListPeers.size()) buffer3 = ListPeers.get(randomIdx3).Buffer;
+        else buffer3 = Peer.FullBuffer;
+
+        // Find list of useful packets
+        ArrayList<Integer> usefulPktIdx = new ArrayList<>();
+        for(int i=0; i< NumberOfChunks; i++){
+            if ( dstPeer.Buffer[i] == 0 ){
+//                if (buffer1[i] == 1 ||buffer2[i] == 1  ) {
+                    if (buffer1[i] == 1 ||buffer2[i] == 1 ||buffer3[i] == 1 ){
+                    usefulPktIdx.add(i);
+                }
+            }
+        }
+        if (usefulPktIdx.size() >0) {
+            // Select the rarest packet
+            int rarestPktIdx = usefulPktIdx.get(0);
+            int rarestPktCount = NumberOfPeers;
+            for (int j = 0; j < usefulPktIdx.size(); j++) {
+                int count = marginalPktDistributionCount[usefulPktIdx.get(j)];
+                if (count < rarestPktCount) {
+                    rarestPktCount = count;
+                    rarestPktIdx = usefulPktIdx.get(j);
+                }
+
+            }
+//            rarestPktIdx = usefulPktIdx.get(0);
+            dstPeer.Buffer[rarestPktIdx] = 1;
+            // update distribution
+            updateMedaData(dstPeer,rarestPktIdx);
+            boolean removed = removePeer(dstPeer );
+            return rarestPktIdx;
+        }
         return -1;
 
     }
@@ -534,9 +611,9 @@ public class P2PSimulation {
         int [] src = ListPeers.get(srcIdx).Buffer;
 
         // Determine largestbuffer
-        int largestBuffer = 0;
+        int largestBuffer = 1;
         int largestValue = 0;
-        for(int i=0; i< bufferDistributionCount.length;i++){
+        for(int i=1; i< bufferDistributionCount.length;i++){
             int newvalue = bufferDistributionCount[i];
             if (newvalue > largestValue){
                 largestValue = newvalue;
@@ -545,6 +622,7 @@ public class P2PSimulation {
         }
         if(toDecimal(src) == largestBuffer){
             if (sumPackets(dst) < sumPackets(src) ){
+                checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
                 return -1; // abandoning the transfer to avoid single club
             }
         }
@@ -568,6 +646,7 @@ public class P2PSimulation {
             boolean removed = removePeer(dstPeer );
             return pktIdx;
         }
+        checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
         return -1;
 
     }
@@ -640,6 +719,7 @@ public class P2PSimulation {
             boolean removed = removePeer(dstPeer );
             return rarestPktIdx;
         }
+        checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
         return -1;
 
     }
@@ -653,6 +733,9 @@ public class P2PSimulation {
             fullBuffer[k] = 1;
         }
         int randomIdx1 = rand.nextInt(ListPeers.size() +1);
+        if(srcIdx == -1){
+            randomIdx1 = ListPeers.size();
+        }
         int randomIdx2 = rand.nextInt(ListPeers.size()+1);
         int randomIdx3 = rand.nextInt(ListPeers.size()+1);
         int [] buffer1, buffer2, buffer3;
@@ -673,6 +756,7 @@ public class P2PSimulation {
             boolean removed = removePeer(dstPeer );
             return pktIdx;
         }
+//        checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
         return -1;
     }
     private int peerFriedmanPolicy(Peer dstPeer ){
@@ -707,6 +791,7 @@ public class P2PSimulation {
             boolean removed = removePeer(dstPeer );
             return pktIdx;
         }
+        checkStarvation(buffer1,dstPeer.Buffer);
         return -1;
 
     }
@@ -754,8 +839,40 @@ public class P2PSimulation {
             boolean removed = removePeer(dstPeer );
             return pktIdx;
         }
+        checkStarvation(buffer1,dstPeer.Buffer);
         return -1;
 
+    }
+    private int peerStrictLocalModeSuppression(Peer dstPeer, int srcIdx){
+        /*
+        - Randomly samples three users and tries to estimate mu
+        - The seed also included in the sampling list
+        */
+
+        int randomIdx1 = rand.nextInt(ListPeers.size() +1);
+        if(srcIdx == -1){
+            randomIdx1 = ListPeers.size();
+        }
+        int randomIdx2 = rand.nextInt(ListPeers.size()+1);
+        int randomIdx3 = rand.nextInt(ListPeers.size()+1);
+        int [] buffer1, buffer2, buffer3;
+        if (randomIdx1 < ListPeers.size()) buffer1 = ListPeers.get(randomIdx1).Buffer;
+        else buffer1 = Peer.FullBuffer;
+        if (randomIdx2 < ListPeers.size()) buffer2 = ListPeers.get(randomIdx2).Buffer;
+        else buffer2 = Peer.FullBuffer;
+        if (randomIdx3 < ListPeers.size()) buffer3 = ListPeers.get(randomIdx3).Buffer;
+        else buffer3 = Peer.FullBuffer;
+
+        int pktIdx = striclLocalModeMatch(dstPeer, buffer1, buffer2 , buffer3);
+
+        if (pktIdx != -1){
+            dstPeer.Buffer[pktIdx] = 1;
+            updateMedaData(dstPeer,pktIdx); // update distribution
+            boolean removed = removePeer(dstPeer );
+            return pktIdx;
+        }
+//        checkStarvation(ListPeers.get(srcIdx).Buffer,dstPeer.Buffer);
+        return -1;
     }
     /* Seed Policies */
     private int seedRandomChunk(Peer dstPeer){
@@ -894,7 +1011,7 @@ public class P2PSimulation {
         }
 
 
-        int randomIdx1 = ListPeers.size() +1;
+        int randomIdx1 = ListPeers.size() ;
         int randomIdx2 = rand.nextInt(ListPeers.size()+1);
         int randomIdx3 = rand.nextInt(ListPeers.size()+1);
         int [] buffer1, buffer2, buffer3;
@@ -928,7 +1045,7 @@ public class P2PSimulation {
         }
 
 
-        int randomIdx1 = ListPeers.size() +1;
+        int randomIdx1 = ListPeers.size() ;
         int randomIdx2 = rand.nextInt(ListPeers.size()+1);
         int randomIdx3 = rand.nextInt(ListPeers.size()+1);
         int [] buffer1, buffer2, buffer3;
@@ -958,7 +1075,7 @@ public class P2PSimulation {
         - The seed also included in the sampling list
         */
 
-        int randomIdx1 = ListPeers.size()+1;
+        int randomIdx1 = ListPeers.size();
         int randomIdx2 = rand.nextInt(ListPeers.size()+1);
         int randomIdx3 = rand.nextInt(ListPeers.size()+1);
         int [] buffer1, buffer2, buffer3;
@@ -1131,24 +1248,34 @@ public class P2PSimulation {
 
     }
     private int nonAbundentMatch(Peer dstPeer, int[] buffer1, int[] buffer2 , int[] buffer3){
+        if(dstPeer.Buffer[0] == 0 && dstPeer.Buffer[1]==0 && buffer1[0]+buffer2[0]+buffer3[0] ==1){
+            int temp =0;
+        }
         ArrayList<Integer> rareIndicies = new ArrayList<Integer>();
+        int numberChunksPopular = 0;
+
+
         for(int i = 0; i < NumberOfChunks; i++){
             if(dstPeer.Buffer[i] == 0){
-                int count = buffer1[i] + buffer2[i] ;
-                if (count !=2) {
-                    if (restirctToOnePeer){
-                        // Only downloads from buffer1
-                        if(buffer1[i]==1) rareIndicies.add(i);
-                    }
-                    else{
-                        rareIndicies.add(i);
+                int count = buffer1[i] + buffer2[i] + buffer3[i];
+                if (count >0) {
+                    // There is a chunk to give
+                    if(count !=3 ) {
+                    // Should not selected popular packet
+                        if (restirctToOnePeer) {
+                            // Only downloads from buffer1
+                            if (buffer1[i] == 1) rareIndicies.add(i);
+                        } else {
+                            rareIndicies.add(i);
+                        }
                     }
                 }
             }
         }
         if (rareIndicies.size() >0){
 
-            int pktIdx = rareIndicies.get(rand.nextInt(rareIndicies.size()));
+            int randValue = rand.nextInt(rareIndicies.size());
+            int pktIdx = rareIndicies.get(randValue);
             return pktIdx;
         }
         else return -1;
@@ -1190,6 +1317,89 @@ public class P2PSimulation {
             return pktIdx;
         }
         else return -1;
+
+    }
+
+    private void checkStarvation(int[] srcBuffer, int[] dstBuffer){
+        if(sumPackets(dstBuffer) < sumPackets(srcBuffer)){
+            writerStarvations.println(1);
+        }
+        else{
+            writerStarvations.println(0);
+        }
+    }
+
+    private int striclLocalModeMatch(Peer dstPeer, int[] buffer1, int[] buffer2 , int[] buffer3){
+
+        // Find the marginal counts
+        int[] localMarginalCounts = new int[NumberOfChunks];
+        int maxCount = 0;
+        for(int i=0; i<NumberOfChunks;i++){
+            localMarginalCounts[i] = buffer1[i] + buffer2[i] + buffer3[i];
+            if (maxCount < localMarginalCounts[i] ){
+                maxCount = localMarginalCounts[i];
+            }
+        }
+
+        // Check if all chunks are equally popular
+        boolean uniformDist= false;
+        if(maxCount >= 2 && (sumPackets(localMarginalCounts) == maxCount *NumberOfChunks) ) {
+            uniformDist = true;
+        }
+
+        ArrayList<Integer> possilbeCandidates = new ArrayList<>();
+        for(int k = 0;k < NumberOfChunks;k++){
+            if( (dstPeer.Buffer[k] == 0) && (localMarginalCounts[k] >0) ) {
+                // Then only u have piece to transfer
+                if (uniformDist) {
+                    possilbeCandidates.add(k);
+                } else if (localMarginalCounts[k] != maxCount) {
+                    possilbeCandidates.add(k);
+                }
+            }
+        }
+
+        int pktIdx  = -1;
+        if(possilbeCandidates.size()>0){
+            // Select a random packet from possible Candidates
+            pktIdx = possilbeCandidates.get(rand.nextInt(possilbeCandidates.size()));
+            if(pktIdx ==1){
+                int kkkk = 0;
+            }
+        }
+        return pktIdx;
+    }
+
+    private void testMethods(){
+        Peer testPeer = new Peer();
+        for(int i=0;i < NumberOfChunks;i++){
+            testPeer.Buffer[i] = 0;
+        }
+        int[] buffer1 = {0,0,0,0,1};
+        int[] buffer2 = {0,0,0,0,1};
+        int[] buffer3 = {0,0,0,0,1};
+        int pktIdxSelected = nonAbundentMatch(testPeer,buffer1,buffer2,buffer3);
+        pktIdxSelected = striclLocalModeMatch(testPeer,buffer1,buffer2,buffer3);
+        buffer2[3] = 1;
+        pktIdxSelected = nonAbundentMatch(testPeer,buffer1,buffer2,buffer3);
+        pktIdxSelected = striclLocalModeMatch(testPeer,buffer1,buffer2,buffer3);
+
+        int[] fullbuffer = {1,1,1,1,1};
+        pktIdxSelected = nonAbundentMatch(testPeer,fullbuffer,fullbuffer,fullbuffer);
+        pktIdxSelected = striclLocalModeMatch(testPeer,fullbuffer,fullbuffer,fullbuffer);
+
+
+
+        int[] buffer4 = {0,1,1,1,1};
+        int[] buffer5 = {0,0,0,0,0};
+        testPeer.Buffer[0] = 1;
+        pktIdxSelected = nonAbundentMatch(testPeer,buffer4,buffer4,buffer5);
+        pktIdxSelected = striclLocalModeMatch(testPeer,buffer4,buffer4,buffer5);
+
+        buffer1[4] = 0;
+        pktIdxSelected = nonAbundentMatch(testPeer,buffer1,fullbuffer,fullbuffer);
+        pktIdxSelected = striclLocalModeMatch(testPeer,buffer1,fullbuffer,fullbuffer);
+
 
     }
 }

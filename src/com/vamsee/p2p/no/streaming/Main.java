@@ -7,12 +7,13 @@ public class Main {
     public static void main(String[] args) throws IOException {
 	// write your code here
         double U = 1;
-        double lambda = 4;
+        double lambda = 100;
         double mu= U;
         String outputDir = args[0];
         P2PSimulation simulation = new P2PSimulation(U, lambda, mu, outputDir);
-        String[] policyList = { "RelaxedModeSup","Random", "Rarest", "Friedman", "ModeSup", "DistrModeSup", "CommonChunk", "GroupSup"};
-//        String[] policyList = { "Friedman", "ModeSup", "DistrModeSup", "CommonChunk", "GroupSup"};
+//        String[] policyList = { "StrictLocalMode","DistrModeSup","BoostedRarest","Random",  "Friedman", "ModeSup",  "CommonChunk", "GroupSup"};
+//        String[] policyList = { "StrictLocalMode","DistrModeSup", "Friedman", "ModeSup",  "CommonChunk", "GroupSup", "Rarest", "Random"};
+        String[] policyList = { "DistrModeSup","StrictLocalMode"};
         for(String policy : policyList){
             simulation.Run(policy);
         }
