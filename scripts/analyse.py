@@ -69,10 +69,9 @@ if(RANDOM_EVOLUTION):
     plt.tight_layout()
     plt.savefig(RESULTS_FOLDER_NAME+"random-chunk-evolution.pdf",dpi=300);
 
-
 BUFFEREVOL = False
 if(BUFFEREVOL):
-    list2= ["Rarest_distribution.txt",     "ModeSup_distribution.txt",  "DistrModeSup_distribution.txt", "GroupSup_distribution.txt","CommonChunk_distribution.txt","Friedman_distribution.txt"]
+    list2= ["Rarest_distribution.txt",     "ModeSup_distribution.txt",  "StrictLocalMode_distribution.txt", "GroupSup_distribution.txt","CommonChunk_distribution.txt","Friedman_distribution.txt"]
     # list_peers= ["Rarest_peers.txt",  "ModeSup_peers.txt","DistrModeSup_peers.txt",   "GroupSup_peers.txt",  "CommonChunk_peers.txt" ]
     labels2 =[ r"Rarest First",r"Mode Suppression",r"Distributed Mode Suppression",  r"Group Suppression", r"Common Chunk" , r"Rare Chunk" ]
 
@@ -113,8 +112,7 @@ if(BUFFEREVOL):
     axes[4].set_xlabel("Time",fontsize=14)
     axes[3].set_xlabel("Time",fontsize=14)
     plt.tight_layout()
-    plt.savefig(RESULTS_FOLDER_NAME+"buffer-evolution.pdf",dpi=300);
-
+    plt.savefig(RESULTS_FOLDER_NAME+"corrected-buffer-evolution.pdf",dpi=300);
 
 NOPKTS = False
 if (NOPKTS):
@@ -146,7 +144,6 @@ if (NOPKTS):
     # plt.suptitle('(m=10)',size=18)
     plt.tight_layout()
     plt.savefig(FOLDER_NAME+"peer-evolution.pdf",dpi=300)
-
 
 SOJURNTIME = False
 if(SOJURNTIME):
@@ -182,7 +179,7 @@ if(SOJURNTIME):
     plt.tight_layout()
     plt.savefig(FOLDER_NAME+"sojourn-times.pdf",dpi=300)
 
-def mean_waiting_times(folder_name):
+def mean_waiting_times(folder_name,stability_time):
     # file_name = folder_name+"Rarest_waitingTime.txt"
     # waiting_time_rarest= read_wait_times(file_name)
     #
@@ -207,15 +204,14 @@ def mean_waiting_times(folder_name):
     waiting_time_cc= read_wait_times(file_name)
 
     # labels = [ "Group Suppression", "Forced Friedman", "Mode Suppression", "Distributed Mode Suppression", "Common Chunk"]
-    labels = [ "Group Supr",  "Mode Sup", "Distri Mode ", "Forced Friedman", "Common Chunk"]
-    time = 4000
-    mean_sojourn_times = [  np.mean(waiting_time_gs[time:]), np.mean(waiting_time_mode_suppression[time:]), np.mean(waiting_time_dms[time:]), np.mean(waiting_time_lm[time:]),np.mean(waiting_time_fd[time:]), np.mean(waiting_time_cc[time:])]
-    std_sojourn_times = [  np.std(waiting_time_gs[time:]), np.std(waiting_time_mode_suppression[time:]), np.std(waiting_time_dms[time:]), np.std(waiting_time_lm[time:]), np.std(waiting_time_fd[time:]), np.std(waiting_time_cc[time:])]
+    # labels = [ "Group Supr",  "Mode Sup", "Distri Mode ", "Forced Friedman", "Common Chunk"]
+    time = stability_time
+    mean_sojourn_times = [  np.mean(waiting_time_gs[time:]), np.mean(waiting_time_mode_suppression[time:]), np.mean(waiting_time_dms[time:]), np.mean(waiting_time_lm[time:]),np.mean(waiting_time_fd[time:]),  np.mean(waiting_time_cc[time:])]
+    std_sojourn_times = [  np.std(waiting_time_gs[time:]), np.std(waiting_time_mode_suppression[time:]), np.mean(waiting_time_dms[time:]), np.std(waiting_time_lm[time:]), np.std(waiting_time_fd[time:]) , np.std(waiting_time_cc[time:]) ]
     # mean_sojourn_times = [  np.mean(waiting_time_gs[time:]), np.mean(waiting_time_mode_suppression[time:]), np.mean(waiting_time_dms[time:]),np.mean(waiting_time_fd[time:]), np.mean(waiting_time_cc[time:])]
     # std_sojourn_times = [  np.std(waiting_time_gs[time:]), np.std(waiting_time_mode_suppression[time:]), np.std(waiting_time_dms[time:]),np.std(waiting_time_fd[time:]), np.std(waiting_time_cc[time:])]
 
     return mean_sojourn_times,[0.85*x for x in  std_sojourn_times]
-
 
 SOJURNHIST = True
 if(SOJURNHIST):
@@ -228,22 +224,24 @@ if(SOJURNHIST):
         folder_5 =  r"../output/k5" + "lambda"+str(lamb)+"/"
         folder_10 =  r"../output/k10" + "lambda"+str(lamb)+"/"
         folder_15 =  r"../output/k15" + "lambda"+str(lamb)+"/"
-        # folder_20 =  r"../output/k20" + "lambda"+str(lamb)+"/"
+        folder_20 =  r"../output/k20" + "lambda"+str(lamb)+"/"
         # folder_25 =  r"../output/k25" + "lambda"+str(lamb)+"/"
         # labels = [ "Group Suppression", "Forced Friedman", "Mode Suppression", "Distributed Mode ", "Common Chunk"]
-        labels = [ "Group Suppre",  "Mode Suppre", " DMS ", "Local MS","Rare Chunk", "Common Chunk"]
+        labels = [ "Group Suppr",  "Mode Suppr", "DMS(1)", "DMS","Rare Chunk", "Common Chunk"]
         ax.hold(True)
-        width=0.18
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_2)
+        width=0.15
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_2,5000)
         rects1 = ax.bar([x+0.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='blue',yerr=std_sojourn_times,alpha=0.5)
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_5)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_5,5000)
         rects2 = ax.bar([x+1.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='darkseagreen',yerr=std_sojourn_times,alpha=0.75)
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_15)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_15,5000)
         rects3 = ax.bar([x+3.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='violet',yerr=std_sojourn_times,alpha=0.75)
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_10)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_10,5000)
         rects4 = ax.bar([x+2.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='tomato',yerr=std_sojourn_times,alpha=0.75)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_20,5000)
+        rects5 = ax.bar([x+4.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='teal',yerr=std_sojourn_times,alpha=0.75)
 
-        ax.legend((rects1[0], rects2[0], rects4[0], rects3[0]), ('$m=2$', '$m=5$','$m=10$','$m=15$'),fontsize=16,loc=1)
+        ax.legend((rects1[0], rects2[0], rects4[0], rects3[0],rects5[0]), ('$m=2$', '$m=5$','$m=10$','$m=15$','$m=20$'),fontsize=16,loc=1)
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         ax.text(0.35, 0.95, r"$\lambda = 4, \;\mu =1,\; U =1$", transform=ax.transAxes, fontsize=16, verticalalignment='top', bbox=props)
 
@@ -260,22 +258,23 @@ if(SOJURNHIST):
         folder_5 =  r"../output/k5" + "lambda"+str(lamb)+"/"
         folder_10 =  r"../output/k10" + "lambda"+str(lamb)+"/"
         folder_15 =  r"../output/k15" + "lambda"+str(lamb)+"/"
-        # folder_20 =  r"../output/k20" + "lambda"+str(lamb)+"/"
+        folder_20 =  r"../output/k20" + "lambda"+str(lamb)+"/"
         # folder_25 =  r"../output/k25" + "lambda"+str(lamb)+"/"
         # labels = [ "Group Suppression", "Forced Friedman", "Mode Suppression", "Distributed Mode ", "Common Chunk"]
-        labels = [ "Group Suppression",  "Mode Suppression", "DMS", "Local MS","Rare Chunk", "Common Chunk"]
+        labels = [ "Group Suppr",  "Mode Suppr", "DMS(1)"," DMS ", "Rare Chunk", "Common Chunk"]
         ax.hold(True)
-        width=0.18
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_2)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_2,10000)
         rects1 = ax.bar([x+0.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='blue',yerr=std_sojourn_times,alpha=0.5)
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_5)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_5,5000)
         rects2 = ax.bar([x+1.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='darkseagreen',yerr=std_sojourn_times,alpha=0.75)
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_15)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_15,5000)
         rects3 = ax.bar([x+3.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='violet',yerr=std_sojourn_times,alpha=0.75)
-        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_10)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_10,5000)
         rects4 = ax.bar([x+2.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='tomato',yerr=std_sojourn_times,alpha=0.75)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_20,5000)
+        rects5 = ax.bar([x+4.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='teal',yerr=std_sojourn_times,alpha=0.75)
 
-        ax.legend((rects1[0], rects2[0], rects4[0], rects3[0]), ('$m=2$', '$m=5$','$m=10$','$m=15$'),fontsize=16,loc=1)
+        ax.legend((rects1[0], rects2[0], rects4[0], rects3[0], rects5[0]), ('$m=2$', '$m=5$','$m=10$','$m=15$', '$m=20$'),fontsize=16,loc=1)
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         ax.text(0.35, 0.95, r"$\lambda = 100,\; \mu =1,\; U =1$", transform=ax.transAxes, fontsize=16, verticalalignment='top', bbox=props)
 
@@ -287,9 +286,70 @@ if(SOJURNHIST):
 
 
         plt.tight_layout()
-        plt.savefig(RESULTS_FOLDER_NAME+"corrected-sojourn-histogram-lambda-"+str(lamb)+".pdf",dpi=300)
+        plt.savefig(RESULTS_FOLDER_NAME+"sojourn-histogram-lambda-test"+str(lamb)+".pdf",dpi=300)
+
+SOJURNHIST_RESTRICT_ONE_PEER = False
+if(SOJURNHIST_RESTRICT_ONE_PEER):
+
+        fig,(ax1,ax2)= plt.subplots(2,1,figsize=(10,10))
+
+        ax = ax1
+        lamb = 4
+        folder_2 =  r"../output/k2" + "lambda"+str(lamb)+"-restrictOnePeer/"
+        folder_5 =  r"../output/k5" + "lambda"+str(lamb)+"-restrictOnePeer/"
+        folder_10 =  r"../output/k10" + "lambda"+str(lamb)+"-restrictOnePeer/"
+        labels = [ "Group Suppr",  "Mode Suppr",  "DMS","Rare Chunk", "Common Chunk" ]
+        ax.hold(True)
+        width=0.15
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_2,5000)
+        rects1 = ax.bar([x+1.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='blue',yerr=std_sojourn_times,alpha=0.75)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_5,5000)
+        rects3 = ax.bar([x+2.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='violet',yerr=std_sojourn_times,alpha=0.75)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_10,5000)
+        rects4 = ax.bar([x+3.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='teal',yerr=std_sojourn_times,alpha=0.75)
+
+        ax.legend(( rects1[0],rects3[0], rects4[0]), ('$m=2$','$m=5$','$m=10$'),fontsize=16,loc=1)
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        ax.text(0.35, 0.95, r"$\lambda = 4, \;\mu =1,\; U =1$", transform=ax.transAxes, fontsize=16, verticalalignment='top', bbox=props)
+
+        # ax.set_xlabel(xlabel='Policy',fontsize=16)
+        ax.set_ylabel("Mean Sojourn Time",fontsize=16)
+        plt.sca(ax1)
+        plt.xticks([x+0.45 for x in range(1,len(labels)+1)],labels,fontsize=14)
+        ax.set_ylim([0,50])
+
+        # plt.savefig(RESULTS_FOLDER_NAME+"corrected-sojourn-histogram-lambda-"+str(lamb)+".pdf",dpi=300)
+        ax = ax2
+        lamb =100
+        folder_2 =  r"../output/k2" + "lambda"+str(lamb)+"-restrictOnePeer/"
+        folder_5 =  r"../output/k5" + "lambda"+str(lamb)+"-restrictOnePeer/"
+        folder_10 =  r"../output/k10" + "lambda"+str(lamb)+"-restrictOnePeer/"
+        # folder_25 =  r"../output/k25" + "lambda"+str(lamb)+"/"
+        # labels = [ "Group Suppression", "Forced Friedman", "Mode Suppression", "Distributed Mode ", "Common Chunk"]
+        labels = [ "Group Suppr",  "Mode Suppr", " DMS ", "Rare Chunk", "Coomon Chunk"]
+        ax.hold(True)
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_2,5000)
+        rects1 = ax.bar([x+1.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='blue',yerr=std_sojourn_times,alpha=0.75)
+
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_5,5000)
+        rects3 = ax.bar([x+2.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='violet',yerr=std_sojourn_times,alpha=0.75)
+
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_10,5000)
+        rects4 = ax.bar([x+3.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='tomato',yerr=std_sojourn_times,alpha=0.75)
+
+        ax.legend(( rects1[0],rects3[0], rects4[0]), ('$m=2$','$m=5$','$m=10$'),fontsize=16,loc=1)
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        ax.text(0.35, 0.95, r"$\lambda = 100,\; \mu =1,\; U =1$", transform=ax.transAxes, fontsize=16, verticalalignment='top', bbox=props)
+
+        # ax.set_xlabel(xlabel='Policy',fontsize=16)
+        ax.set_ylabel("Mean Sojourn Time",fontsize=16)
+        plt.sca(ax2)
+        plt.xticks([x+0.45 for x in range(1,len(labels)+1)],labels,fontsize=14)
+        ax.set_ylim([0,55])
 
 
+        plt.tight_layout()
+        plt.savefig(RESULTS_FOLDER_NAME+"restrictOnePeer-sojourn-histogram-lambda-"+str(lamb)+".pdf",dpi=300)
 
 NO_PKTS = False
 if (NO_PKTS):
@@ -341,10 +401,7 @@ if (NO_PKTS):
     plt.tight_layout()
     plt.savefig(RESULTS_FOLDER_NAME+"peer-evolution-comparison.pdf",dpi=300)
 
-
-
 RELAXED_SOJUOURN = False
-
 if(RELAXED_SOJUOURN):
 
     lamb = 4
@@ -385,57 +442,85 @@ if(RELAXED_SOJUOURN):
     plt.tight_layout()
     plt.savefig(RESULTS_FOLDER_NAME+"sojourn-boosted-histogram-lambda-"+str(lamb)+".pdf",dpi=300)
 
+def read_suppression_file(file_name):
+    percentage_suppressed_list = []
+    percentage_not_transfered = []
+    percentage_transfered = []
+    percentage_not_available= []
+    for each_line in open(file_name):
+        each_line = each_line.strip('\n')
+        (No_sampled, No_transfered, No_NotAvailable, No_Suppressed) = [ int(x) for x in each_line.split(' ')]
+        if No_sampled > 0:
+            percentage = 100.0 * float(No_Suppressed)/float(No_sampled)
+            percentage_suppressed_list.append(percentage)
+            percentage = 100.0 * float(No_Suppressed+No_NotAvailable)/float(No_sampled)
+            percentage_not_transfered.append(percentage)
+            percentage = 100.0 * float(No_transfered)/float(No_sampled)
+            percentage_transfered.append(percentage)
+            percentage = 100.0 * float(No_NotAvailable)/float(No_sampled)
+            percentage_not_available.append(percentage)
+    return percentage_suppressed_list, percentage_transfered, percentage_not_transfered, percentage_not_available
 
-SUPPRESSION_TIME = False
 
+SUPPRESSION_TIME = True
 if(SUPPRESSION_TIME):
 
-    lamb = 4
-    folder_5 =  r"../output/k5" + "lambda"+str(lamb)+"/"
+    lamb = 100
+    folder_5 =  r"../output/k2" + "lambda"+str(lamb)+"/"
     # folder_10 =  r"../output/k10" + "lambda"+str(lamb)+"/"
     # folder_15 =  r"../output/k15" + "lambda"+str(lamb)+"/"
     # folder_20 =  r"../output/k20" + "lambda"+str(lamb)+"/"
-    fig,(ax1,ax2)= plt.subplots(2,1,figsize=(10,8))
+    fig,((ax1,ax2),(ax3,ax4))= plt.subplots(2,2,figsize=(14,16))
 
-    list_suppression= [ "ModeSup_starvations.txt",  "DistrModeSup_starvations.txt", "GroupSup_starvations.txt","CommonChunk_starvations.txt","Friedman_starvations.txt"]
-    policy_names_list = [  "ModeSup",  "DistrModeSup", "GroupSup","CommonChunk","Friedman"]
+    list_suppression= [ "GroupSup_starvations.txt","ModeSup_starvations.txt",  "StrictLocalMode_starvations.txt", "Friedman_starvations.txt", "CommonChunk_starvations.txt"]
+    policy_names_list = [ "GroupSup", "ModeSup",  "DistrModeSup","Friedman", "CommonChunk"]
     names_array = list(["col"+str(x) for x in range(1,2)])
 
+    combined_suppression_list = []
+    combined_transfered_list = []
+    combined_not_transfered_list= []
+    combined_not_available_list= []
     for suppression_file, policy_name in zip(list_suppression,policy_names_list):
         print(suppression_file,":",policy_name)
-        suppression_array= pd.read_csv(folder_5+suppression_file,sep='\s+',names=names_array)
-        ax1.plot(range(len(suppression_array[:10000])),np.cumsum(suppression_array[:10000]) , '-', label=policy_name)
-    ax1.legend(loc=2)
+        percentage_suppressed, percentage_transfered, percentage_not_transfered , percentage_not_available= read_suppression_file(folder_5+suppression_file)
+        combined_suppression_list.append(percentage_suppressed[3000:])
+        combined_transfered_list.append(percentage_transfered[3000:])
+        combined_not_transfered_list.append(percentage_not_transfered[3000:])
+        combined_not_available_list.append(percentage_not_available[3000:])
+
+    violin_parts = ax1.violinplot(combined_transfered_list, showmeans=True ,showextrema = False)
+    for pc in violin_parts['bodies']:
+        pc.set_facecolor('red')
+        pc.set_edgecolor('black')
+    violin_parts = ax2.violinplot(combined_not_transfered_list, showmeans=True ,showextrema = False)
+    for pc in violin_parts['bodies']:
+        pc.set_facecolor('green')
+        pc.set_edgecolor('black')
+    ax3.violinplot(combined_suppression_list, showmeans=True ,showextrema = False)
+    violin_parts = ax4.violinplot(combined_not_available_list, showmeans=True ,showextrema = False)
+    for pc in violin_parts['bodies']:
+        pc.set_facecolor('violet')
+        pc.set_edgecolor('black')
+
+    ax1.set_ylabel("Percentage Transfered",fontsize=16)
+    ax2.set_ylabel("Percentage Not Transfered",fontsize=16)
+    ax3.set_ylabel("Percentage Suppressed",fontsize=16)
+    ax4.set_ylabel("Percentage Not Available",fontsize=16)
+    # ax1.set_ylim([0,60])
+    for ax in [ax1,ax2,ax3,ax4]:
+        plt.sca(ax)
+        plt.xticks(range(1,len(list_suppression)+1),policy_names_list,fontsize=12)
 
 
-    ax = ax2
-    labels = [ "Group Suppr",  "Mode Suppr", " DMS(sample2) ", "Rare Chunk", "Common Chunk"]
-    width=0.18
-    mean_sojourn_times,std_sojourn_times = mean_waiting_times(folder_5)
-    rects1 = ax.bar([x+0.5*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color='blue',yerr=std_sojourn_times,alpha=0.5)
-    # ax.legend((rects1[0], rects2[0], rects3[0], rects4[0]), ('$m=2$', '$m=5$','$m=10$','$m=15$'),fontsize=16,loc=1)
-    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-    ax.text(0.35, 0.95, r"$\lambda = 4,\; \mu =1,\; U =1$", transform=ax.transAxes, fontsize=16, verticalalignment='top', bbox=props)
+    plt.tight_layout()
+    plt.savefig(RESULTS_FOLDER_NAME+"suppression-time.pdf",dpi=300)
 
-
-
-    # ax.set_xlabel(xlabel='Policy',fontsize=16)
-    ax.set_ylabel("Mean Sojourn Time",fontsize=16)
-    plt.sca(ax)
-    plt.xticks([x+0.25 for x in range(1,len(labels)+1)],labels,fontsize=14)
-    ax.set_ylim([0,50])
-
-    plt.savefig(RESULTS_FOLDER_NAME+"suppression_time.pdf",dpi=300)
-
-
-
-
-NUMBER_OF_PEERS = True
+NUMBER_OF_PEERS = False
 if(NUMBER_OF_PEERS):
     policy_files= ["Random_peers.txt", "Rarest_peers.txt",   "ModeSup_peers.txt", "DistrModeSup_peers.txt", "CommonChunk_peers.txt" , "Friedman_peers.txt", "StrictLocalMode_peers.txt", "GroupSup_peers.txt"]
     policy_names=[ "Random Chunk",r"Rarest First",  r"Mode Suppression", r"Distributed Mode Suppression", "Common Chunk","Rare Chunk", "Strict Local Mode Sup" , "Group Suppression"]
     # lambda_list = ["0.5","4","10","20","100"]
-    lambda_list = ["4","100"]
+    lambda_list = ["100"]
 
     fig,((ax0,ax1),(ax2,ax3),(ax4,ax5), (ax6,ax7))= plt.subplots(4,2,figsize=(12,16))
     ax_list = [ax0,ax1,ax2,ax3,ax4,ax5,ax6,ax7]
@@ -446,7 +531,7 @@ if(NUMBER_OF_PEERS):
     for each_lambda in lambda_list:
         for idx in range(len(policy_files)):
             ax = ax_list[idx]
-            folder_name = r"../output/k15"+"lambda"+each_lambda+"/"
+            folder_name = r"../output/k2"+"lambda"+each_lambda+"/"
             peers_evolution_list = pd.read_csv(folder_name+policy_files[idx],'\n').values
             ax.plot(peers_evolution_list,'-',alpha=0.7,label= policy_names[idx]+": $\lambda=$ "+each_lambda, marker = marker_list[lambda_idx],markevery=100,linewidth=1)
         lambda_idx = lambda_idx+1
@@ -467,4 +552,4 @@ if(NUMBER_OF_PEERS):
     # ax2.set_title("Distributed Mode Suppression",fontsize=16)
     # plt.suptitle('(m=10)',size=18)
     plt.tight_layout()
-    plt.savefig(RESULTS_FOLDER_NAME+"number_peers.pdf",dpi=300)
+    plt.savefig(RESULTS_FOLDER_NAME+"number_peers_m2.pdf",dpi=300)
