@@ -49,10 +49,10 @@ if(COMPONENT_ANALYSIS):
         plt.scatter( range(len(T_bar_i)), [2 for x in range(len(T_bar_i))], c=S_i,s=500,  cmap=plt.cm.Blues, marker='s', vmax=norm_value )
         plt.scatter( range(len(T_bar_i)), [3 for x in range(len(T_bar_i))], c=S_0,s=500,  cmap=plt.cm.Oranges, marker='s', vmax=norm_value )
         plt.scatter( range(len(T_bar_i)), [4 for x in range(len(T_bar_i))], c=D_bar_i,s=500,  cmap=plt.cm.Greys, marker='s', vmax=norm_value )
-        plt.yticks([x for x in range(1,5)],[r"$\bar{T}_i$", "$S_i$","$S_0$",r"$\bar{D}_i$" ] ,fontsize=14)
+        plt.yticks([x for x in range(1,5)],[r"$\sum_i \bar{T}_i$", "$S_i$","$S_0$",r"$\sum_i \bar{D}_i$" ] ,fontsize=14)
         plt.title(policy_names[idx])
         # ax[idx].set_xlim([0,100])
 
 
     plt.tight_layout()
-    plt.savefig(RESULTS_FOLDER_NAME+"component-evolution-3-4.pdf",dpi=300);
+    plt.savefig(RESULTS_FOLDER_NAME+"component-evolution-grouped.pdf",dpi=300);

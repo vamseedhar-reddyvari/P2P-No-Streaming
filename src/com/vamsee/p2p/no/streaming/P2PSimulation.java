@@ -21,7 +21,7 @@ public class P2PSimulation {
     private int NumberOfPeers; // Total peers in the system
     private ArrayList<Peer> ListPeers; // List of all current peers
     private int NumberOfChunks; // Buffer length
-    private boolean RANDOM, RAREST,  GROUPSUPP , MODE_SUPPRESSION, DISTR_MODE_SUPPRESSION, CHAIN_POLICY, FRIEDMAN, COMMONCHUNK, RELAXEDMODESUP, BOOSTEDRAREST, STRICTLOCALMODE;
+    private boolean RANDOM, RAREST,  GROUPSUPP ,BOOST_GROUPSUPP, MODE_SUPPRESSION, BOOST_MODE_SUPPRESSION, DISTR_MODE_SUPPRESSION, CHAIN_POLICY, FRIEDMAN, COMMONCHUNK, RELAXEDMODESUP, BOOSTEDRAREST, STRICTLOCALMODE;
     private PrintWriter writerNoPeers, writerDistribution, writerTime, writerStarvations, writerCounts;
     private String outputDir;
     private boolean restirctToOnePeer ;
@@ -99,7 +99,9 @@ public class P2PSimulation {
         this.STRICTLOCALMODE= false;
         this.RAREST = false;
         this.GROUPSUPP = false;
+        this.BOOST_GROUPSUPP = false;
         this.MODE_SUPPRESSION = false;
+        this.BOOST_MODE_SUPPRESSION = false;
         this.CHAIN_POLICY = false;
         this.DISTR_MODE_SUPPRESSION = false;
         this.FRIEDMAN = false;
@@ -139,15 +141,17 @@ public class P2PSimulation {
 
 
         System.out.println("Running "+policy+" Policy....");
-        Ticks = 4*(int) pow(10,5);
+        Ticks = 1*(int) pow(10,5);
 
         if(policy.equals("Rarest")) {
             RAREST = true;
         }
         else if(policy.equals("Random")) RANDOM = true;
         else if(policy.equals("ModeSup")) MODE_SUPPRESSION= true;
+        else if(policy.equals("BoostModeSup")) BOOST_MODE_SUPPRESSION= true;
         else if(policy.equals("DistrModeSup")) DISTR_MODE_SUPPRESSION= true;
         else if(policy.equals("GroupSup")) GROUPSUPP= true;
+        else if(policy.equals("BoostGroupSup")) BOOST_GROUPSUPP= true;
         else if(policy.equals("Friedman")) FRIEDMAN= true;
         else if(policy.equals("CommonChunk")) COMMONCHUNK= true;
         else if(policy.equals("RelaxedModeSup")) RELAXEDMODESUP = true;
@@ -205,8 +209,10 @@ public class P2PSimulation {
         STRICTLOCALMODE= false;
         RAREST = false;
         GROUPSUPP = false;
+        BOOST_GROUPSUPP = false;
         COMMONCHUNK = false;
         MODE_SUPPRESSION = false;
+        BOOST_MODE_SUPPRESSION = false;
         DISTR_MODE_SUPPRESSION = false;
         FRIEDMAN = false;
         RELAXEDMODESUP = false;
@@ -219,13 +225,19 @@ public class P2PSimulation {
 
 
     /* Events */
-    private void peer2PeerEvent(int srcPeerIdx, double timeEpoch){
+    private void peer2PeerEvent(int minPeerIdx, double timeEpoch){
         // Peers Exchange packets
         assertMetaVariables();
         updateTime(timeEpoch);
-        Peer srcPeer = ListPeers.get(srcPeerIdx);
-        int dstPeerIdx = rand.nextInt(NumberOfPeers);
+//        Peer srcPeer = ListPeers.get(srcPeerIdx);
+//        int dstPeerIdx = rand.nextInt(NumberOfPeers);
+//        Peer dstPeer = ListPeers.get(dstPeerIdx);
+        int dstPeerIdx = minPeerIdx;
         Peer dstPeer = ListPeers.get(dstPeerIdx);
+
+        // Randomly select source
+        int srcPeerIdx = rand.nextInt(NumberOfPeers);
+        Peer srcPeer = ListPeers.get(srcPeerIdx);
         if (RANDOM){
             // transfer random useful packet from src to dst
             int pktIdx = peerRandomChunkPolicy(dstPeer, srcPeerIdx);
@@ -233,33 +245,44 @@ public class P2PSimulation {
         else if (GROUPSUPP){
             int pktIdx = peerChunkGroupSuppression(dstPeer, srcPeerIdx);
         }
+        else if (BOOST_GROUPSUPP){
+            int pktIdx = peerChunkBoostGroupSuppression(dstPeer, srcPeerIdx);
+            if(pktIdx == -1){
+                int srcPeerIdx2 = rand.nextInt(NumberOfPeers);
+                pktIdx = peerChunkBoostGroupSuppression(dstPeer, srcPeerIdx2);
+            }
+            if(pktIdx == -1) {
+                int srcPeerIdx3 = rand.nextInt(NumberOfPeers);
+                pktIdx = peerChunkBoostGroupSuppression(dstPeer, srcPeerIdx3);
+            }
+        }
         else if (RAREST){
             int pktIdx = peerRarestChunk(dstPeer, srcPeerIdx);
         }
         else if (MODE_SUPPRESSION){
              int pktIdx = peerModeSuppresionPolicy(dstPeer, srcPeerIdx);
         }
+        else if (BOOST_MODE_SUPPRESSION){
+            boolean DONT_SELECT_SEED = false;
+            int pktIdx = peerBoostedModeSuppresionPolicy( dstPeer, DONT_SELECT_SEED);
+        }
         else if (CHAIN_POLICY){
 
             int pktIdx = peerChainPolicy(dstPeer, srcPeerIdx);
         }
         else if(DISTR_MODE_SUPPRESSION){
-            int pktIdx = peerDistributedModeSuppression(ListPeers.get(srcPeerIdx), srcPeerIdx);
+            boolean DONT_SELECT_SEED = false;
+            int pktIdx = peerDistributedModeSuppression(dstPeer, DONT_SELECT_SEED);
         }
         else if(FRIEDMAN){
-            int pktIdx = peerFriedmanPolicy( ListPeers.get(srcPeerIdx), false );
+            int pktIdx = peerFriedmanPolicy( dstPeer, false );
         }
         else if(COMMONCHUNK){
-            int pktIdx = peerCommonChunkPolicy( ListPeers.get(srcPeerIdx) );
-        }
-        else if(RELAXEDMODESUP){
-            int pktIdx = peerRelaxedModeSuppresionPolicy(dstPeer, srcPeerIdx);
-        }
-        else if(BOOSTEDRAREST){
-            int pktIdx = peerBoostedRarestChunkPolicy(dstPeer, srcPeerIdx);
+            int pktIdx = peerCommonChunkPolicy( dstPeer );
         }
         else if(STRICTLOCALMODE){
-            int pltIdx = peerStrictLocalModeSuppression(dstPeer, srcPeerIdx);
+            boolean DONT_SELECT_SEED = false;
+            int pltIdx = peerStrictLocalModeSuppression(dstPeer, DONT_SELECT_SEED);
         }
         else{
             System.out.println("Peer Chunk Policy Not found");
@@ -286,7 +309,9 @@ public class P2PSimulation {
             writerDistribution.print(prob+" ");
         }
         writerDistribution.println();
-        assertMetaVariables();
+        if(!assertMetaVariables()){
+            System.out.print("Assert Failed");
+        }
     }
     private void seedTransferEvent(double timeEpoch){
         // Seed gives a packet
@@ -298,11 +323,11 @@ public class P2PSimulation {
         updateTime(timeEpoch);
         int dstPeerIdx=0;
         Peer dstPeer = ListPeers.get(dstPeerIdx);
-        if (RAREST || RANDOM || MODE_SUPPRESSION || DISTR_MODE_SUPPRESSION || FRIEDMAN || RELAXEDMODESUP ||COMMONCHUNK || BOOSTEDRAREST || STRICTLOCALMODE) {
+        if (RAREST || RANDOM || MODE_SUPPRESSION || DISTR_MODE_SUPPRESSION || FRIEDMAN || RELAXEDMODESUP ||COMMONCHUNK || BOOSTEDRAREST || STRICTLOCALMODE || BOOST_MODE_SUPPRESSION) {
             dstPeerIdx = rand.nextInt(NumberOfPeers);
             dstPeer = ListPeers.get(dstPeerIdx);
         }
-        else if (GROUPSUPP || CHAIN_POLICY){
+        else if (GROUPSUPP || BOOST_GROUPSUPP){
             // Select a most deprived peer
             int k=0;
             for(k=0; k < NumberOfChunks +1; k++){
@@ -318,8 +343,9 @@ public class P2PSimulation {
             System.out.println("No Peer Selection Policy");
         }
 
+        boolean SELECT_SEED = true;
         // Piece Selection
-        if (RANDOM || GROUPSUPP || CHAIN_POLICY) {
+        if (RANDOM || GROUPSUPP || CHAIN_POLICY || BOOST_GROUPSUPP) {
             int pktIdx = seedRandomChunk(dstPeer);
         }
         else if (RAREST) {
@@ -328,25 +354,20 @@ public class P2PSimulation {
         else if (MODE_SUPPRESSION){
             int pktIdx = seedModeSuppressionPolicy(dstPeer);
         }
+        else if (BOOST_MODE_SUPPRESSION){
+            int pktIdx = peerBoostedModeSuppresionPolicy( dstPeer, SELECT_SEED);
+        }
         else if (DISTR_MODE_SUPPRESSION){
-            int pktIdx = peerDistributedModeSuppression(dstPeer, -1);
-//            int pktIdx = distributedSeedDeclineMostPopularChunk(dstPeer);
+            int pktIdx = peerDistributedModeSuppression(dstPeer, SELECT_SEED);
         }
         else if(FRIEDMAN){
-//            int pktIdx = seedFriedmanPolicy(dstPeer);
-            int pktIdx = peerFriedmanPolicy( dstPeer, true );
+            int pktIdx = peerFriedmanPolicy( dstPeer, SELECT_SEED);
         }
         else if(COMMONCHUNK){
             int pktIdx = seedCommonChunkPolicy(dstPeer);
         }
-        else if(RELAXEDMODESUP){
-            int pktIdx = peerRelaxedModeSuppresionPolicy(dstPeer,-1);
-        }
-        else if(BOOSTEDRAREST){
-            int pktIdx = peerBoostedRarestChunkPolicy(dstPeer,-1);
-        }
         else if(STRICTLOCALMODE){
-            int pktIdx = peerStrictLocalModeSuppression(dstPeer,-1);
+            int pktIdx = peerStrictLocalModeSuppression(dstPeer,SELECT_SEED);
         }
         else{
             System.out.println("Seed Policy Not found");
@@ -424,26 +445,29 @@ public class P2PSimulation {
         return -1;
 
     }
-    private int peerRelaxedModeSuppresionPolicy(Peer dstPeer, int srcIdx){
-        /*
-        - Transfers a useful packet from src to destination
-        - Returns index of the packet transmitted
-        - If no packet is transmitted returns -1
-        - Also update marginal and buffer distributions
-        */
+
+    private int peerBoostedModeSuppresionPolicy(Peer dstPeer, boolean SEED_SELECTED){
+
+        if(!assertMetaVariables()){
+            System.out.print("Assert Error");
+        }
+        int randomIdx1 = rand.nextInt(ListPeers.size() +1);
+        if(SEED_SELECTED){
+            randomIdx1 = ListPeers.size();
+        }
+        int randomIdx2 = rand.nextInt(ListPeers.size()+1);
+        int randomIdx3 = rand.nextInt(ListPeers.size()+1);
+        int [] buffer1, buffer2, buffer3;
+        if (randomIdx1 < ListPeers.size()) buffer1 = ListPeers.get(randomIdx1).Buffer;
+        else buffer1 = Peer.FullBuffer;
+        if (randomIdx2 < ListPeers.size()) buffer2 = ListPeers.get(randomIdx2).Buffer;
+        else buffer2 = Peer.FullBuffer;
+        if (randomIdx3 < ListPeers.size()) buffer3 = ListPeers.get(randomIdx3).Buffer;
+        else buffer3 = Peer.FullBuffer;
+
+
         int [] dst = dstPeer.Buffer;
-        int [] src ;
-        if (srcIdx !=-1) {
-            src = ListPeers.get(srcIdx).Buffer;
-        }
-        else{
-            src = Peer.FullBuffer;
-        }
-        int []src2 =ListPeers.get(rand.nextInt(NumberOfPeers)).Buffer ;
-        int []src3 = ListPeers.get(rand.nextInt(NumberOfPeers)).Buffer ;
 
-
-        double pi_max = 0;
         //find most popular pktidx
         int maxPopularity = 0;
         for(int j = 0; j < NumberOfChunks; j++){
@@ -456,7 +480,6 @@ public class P2PSimulation {
         for(int j = 0; j < NumberOfChunks; j++) {
             if (marginalPktDistributionCount[j] == maxPopularity){
                 mostPopularIdxList.add(j);
-                pi_max = ((double)marginalPktDistributionCount[j])/NumberOfPeers;
             }
 
         }
@@ -465,58 +488,38 @@ public class P2PSimulation {
             mostPopularIdxList = new ArrayList<Integer>();
         }
 
-        ArrayList<Integer> unPopularUsefulPktIdxList = new ArrayList<Integer>();
-        ArrayList<Integer> mostPopularUsefulPktIdxList = new ArrayList<Integer>();
+        ArrayList<Integer> usefulPktIdx = new ArrayList<Integer>();
 
-        // Find list of useful packets by removing most-useful pkts
+        // Find list of useful packets
         for(int i = 0; i< NumberOfChunks; i++){
             // Check if i is popular index
-            if ( (src[i] > dst[i])  || ( src2[i] > dst[i]) || (src3[i] > dst[i]) ) {
-                boolean popularIdx = false;
-                for (int mostPopularIdx : mostPopularIdxList) {
-                    if (mostPopularIdx == i) {
-                        popularIdx = true;
-                    }
+            boolean popularIdx = false;
+            for(int mostPopularIdx: mostPopularIdxList){
+                if (mostPopularIdx == i){
+                    popularIdx = true;
                 }
+            }
 
-                if (popularIdx) {
-                    mostPopularUsefulPktIdxList.add(i);
-                }
-                else {
-                    unPopularUsefulPktIdxList.add(i);
-                }
+            if(popularIdx) continue;
+            else if ( (buffer1[i] + buffer2[i]+ buffer3[i] >= 1) &&  (dst[i]==0) ) {
+                usefulPktIdx.add(i);
             }
         }
         // Select a random packet and transfer
-        double relaxProb =  0;
         int pktIdx = -1;
-        double randomVariable = rand.nextDouble();
-            // Don't pick modes
-            if (unPopularUsefulPktIdxList.size() >0){
-                int randomIdx = rand.nextInt(unPopularUsefulPktIdxList.size());
-                pktIdx = unPopularUsefulPktIdxList.get(randomIdx);
-                dst[pktIdx] = 1;
-                // update distribution
-                updateMedaData(dstPeer,pktIdx);
-                updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, pktIdx);
-                boolean removed = removePeer(dstPeer );
-                return pktIdx;
-            }
-        if (randomVariable < relaxProb){
-            //picke one of the modes
-            if (mostPopularUsefulPktIdxList.size() >0){
-                int randomIdx = rand.nextInt(mostPopularUsefulPktIdxList.size());
-                pktIdx = mostPopularUsefulPktIdxList.get(randomIdx);
-                dst[pktIdx] = 1;
-                // update distribution
-                updateMedaData(dstPeer,pktIdx);
-                updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, pktIdx);
-                boolean removed = removePeer(dstPeer );
-                return pktIdx;
-            }
-
+        if (usefulPktIdx.size() >0){
+            int randomIdx = rand.nextInt(usefulPktIdx.size());
+            pktIdx = usefulPktIdx.get(randomIdx);
+            dst[pktIdx] = 1;
+            // update distribution
+            updateMedaData(dstPeer,pktIdx);
+            if(randomIdx1 < ListPeers.size()) updateStarvationBuffer(ListPeers.get(randomIdx1),dstPeer.Buffer, pktIdx);
+            boolean removed = removePeer(dstPeer );
+            return pktIdx;
         }
-        updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, pktIdx);
+        if(randomIdx1 < ListPeers.size()) updateStarvationBuffer(ListPeers.get(randomIdx1),dstPeer.Buffer, pktIdx);
+
+        boolean rr = assertMetaVariables();
         return -1;
 
     }
@@ -555,62 +558,6 @@ public class P2PSimulation {
         return -1;
 
     }
-    private int peerBoostedRarestChunkPolicy(Peer dstPeer, int srcIdx){
-        /*
-        - Transfers a useful packet from src to destination
-        - Returns index of the packet transmitted
-        - If no packet is transmitted returns -1
-        - Also update marginal and buffer distributions
-        */
-        int randomIdx1 = rand.nextInt(ListPeers.size() +1);
-        if(srcIdx ==-1) {
-            // Fix one source as seed
-            randomIdx1 = ListPeers.size();
-        }
-        int randomIdx2 = rand.nextInt(ListPeers.size()+1);
-        int randomIdx3 = rand.nextInt(ListPeers.size()+1);
-        int [] buffer1, buffer2, buffer3;
-        if (randomIdx1 < ListPeers.size()) buffer1 = ListPeers.get(randomIdx1).Buffer;
-        else buffer1 = Peer.FullBuffer;
-        if (randomIdx2 < ListPeers.size()) buffer2 = ListPeers.get(randomIdx2).Buffer;
-        else buffer2 = Peer.FullBuffer;
-        if (randomIdx3 < ListPeers.size()) buffer3 = ListPeers.get(randomIdx3).Buffer;
-        else buffer3 = Peer.FullBuffer;
-
-        // Find list of useful packets
-        ArrayList<Integer> usefulPktIdx = new ArrayList<>();
-        for(int i=0; i< NumberOfChunks; i++){
-            if ( dstPeer.Buffer[i] == 0 ){
-//                if (buffer1[i] == 1 ||buffer2[i] == 1  ) {
-                    if (buffer1[i] == 1 ||buffer2[i] == 1 ||buffer3[i] == 1 ){
-                    usefulPktIdx.add(i);
-                }
-            }
-        }
-        if (usefulPktIdx.size() >0) {
-            // Select the rarest packet
-            int rarestPktIdx = usefulPktIdx.get(0);
-            int rarestPktCount = NumberOfPeers;
-            for (int j = 0; j < usefulPktIdx.size(); j++) {
-                int count = marginalPktDistributionCount[usefulPktIdx.get(j)];
-                if (count < rarestPktCount) {
-                    rarestPktCount = count;
-                    rarestPktIdx = usefulPktIdx.get(j);
-                }
-
-            }
-//            rarestPktIdx = usefulPktIdx.get(0);
-            dstPeer.Buffer[rarestPktIdx] = 1;
-            // update distribution
-            updateMedaData(dstPeer,rarestPktIdx);
-            updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, rarestPktIdx);
-            boolean removed = removePeer(dstPeer );
-            return rarestPktIdx;
-        }
-        updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, -1);
-        return -1;
-
-    }
     private int peerChunkGroupSuppression(Peer dstPeer, int srcIdx){
         /*
         - Here group Suppresion is implemented
@@ -619,6 +566,63 @@ public class P2PSimulation {
         */
         int [] dst = dstPeer.Buffer;
         int [] src = ListPeers.get(srcIdx).Buffer;
+
+        // Determine largestbuffer
+        int largestBuffer = 1;
+        int largestValue = 0;
+        // Ignore the group with no packets in finding the largest group
+        for(int i=1; i< bufferDistributionCount.length;i++){
+            int newvalue = bufferDistributionCount[i];
+            if (newvalue > largestValue){
+                largestValue = newvalue;
+                largestBuffer = i;
+            }
+        }
+        if(toDecimal(src) == largestBuffer){
+            if (sumPackets(dst) < sumPackets(src) ){
+                updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, -1);
+                return -1; // abandoning the transfer to avoid single club
+            }
+        }
+
+
+        ArrayList<Integer> usefulPktIdx = new ArrayList<Integer>();
+
+        // Find list of useful packets
+        for(int i=0; i< dst.length; i++){
+            if (src[i] > dst[i]){
+                usefulPktIdx.add(i);
+            }
+        }
+        // Select a random packet and transfer
+        if (usefulPktIdx.size() >0){
+            int randomIdx = rand.nextInt(usefulPktIdx.size());
+            int pktIdx = usefulPktIdx.get(randomIdx);
+            dst[pktIdx] = 1;
+            // update distribution
+            updateMedaData(dstPeer,pktIdx);
+            updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, pktIdx);
+            boolean removed = removePeer(dstPeer );
+            return pktIdx;
+        }
+        updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, -1);
+        return -1;
+
+    }
+    private int peerChunkBoostGroupSuppression(Peer dstPeer, int srcIdx){
+        /*
+        - Here group Suppresion is implemented
+        - Identify the (decimal) buffer state of largest group
+        - If the src is in largest group then check if the dst has more pkts ow abadon
+        */
+        int [] dst = dstPeer.Buffer;
+        int [] src = Peer.FullBuffer;
+        if(srcIdx == -1){
+            src = Peer.FullBuffer;
+        }
+        else{
+             src = ListPeers.get(srcIdx).Buffer;
+        }
 
         // Determine largestbuffer
         int largestBuffer = 1;
@@ -739,7 +743,7 @@ public class P2PSimulation {
         return -1;
 
     }
-    private int peerDistributedModeSuppression(Peer dstPeer, int srcIdx){
+    private int peerDistributedModeSuppression(Peer dstPeer, boolean SELECT_SEED){
         /*
         - Randomly samples three users and tries to estimate mu
         - The seed also included in the sampling list
@@ -749,7 +753,7 @@ public class P2PSimulation {
             fullBuffer[k] = 1;
         }
         int randomIdx1 = rand.nextInt(ListPeers.size() +1);
-        if(srcIdx == -1){
+        if(SELECT_SEED){
             randomIdx1 = ListPeers.size();
         }
         int randomIdx2 = rand.nextInt(ListPeers.size()+1);
@@ -868,14 +872,14 @@ public class P2PSimulation {
         return -1;
 
     }
-    private int peerStrictLocalModeSuppression(Peer dstPeer, int srcIdx){
+    private int peerStrictLocalModeSuppression(Peer dstPeer, boolean SELECT_SEED){
         /*
         - Randomly samples three users and tries to estimate mu
         - The seed also included in the sampling list
         */
 
         int randomIdx1 = rand.nextInt(ListPeers.size() +1);
-        if(srcIdx == -1){
+        if(SELECT_SEED){
             randomIdx1 = ListPeers.size();
         }
         int randomIdx2 = rand.nextInt(ListPeers.size()+1);
@@ -1099,7 +1103,9 @@ public class P2PSimulation {
 
             if(NumberOfChunks ==3){
                 int[] T_i_bar_array = {0,1,1};
-                int T_i_bar = bufferDistributionCount[toDecimal(T_i_bar_array)];
+                int[] T_i_array2 = {1,0,1};
+                int[] T_i_array3 = {1,1,0};
+                int T_i_bar = bufferDistributionCount[toDecimal(T_i_bar_array)] + bufferDistributionCount[toDecimal(T_i_array2)] + bufferDistributionCount[toDecimal(T_i_array3)];
                 int[] S_i_array1 = {1,0,1};
                 int[] S_i_array2 = {1,0,0};
                 int[] S_i_array3 = {1,1,0};
@@ -1108,7 +1114,8 @@ public class P2PSimulation {
                 int S_zero = bufferDistributionCount[toDecimal(S_zero_array)] ;
                 int[] D_i_array1 = {0,0,1};
                 int[] D_i_array2 = {0,1,0};
-                int D_i = bufferDistributionCount[toDecimal(D_i_array1)] + bufferDistributionCount[toDecimal(D_i_array2)] ;
+                int[] D_i_array3 = {1,0,0};
+                int D_i = bufferDistributionCount[toDecimal(D_i_array1)] + bufferDistributionCount[toDecimal(D_i_array2)] +  bufferDistributionCount[toDecimal(D_i_array3)];
 
                 writerCounts.print("T_bar_i:"+T_i_bar+" S_i:"+S_i+" S_0:"+ S_zero + " D_bar_i:"+D_i+"\n");
             }
@@ -1132,6 +1139,10 @@ public class P2PSimulation {
     private void updateMedaData(Peer dstPeer, int pktIdx){
         int[] tempBuffer = dstPeer.Buffer;
 
+        // Check if the dstPeer is preset first
+        if (!PeerNumberOfPktsArray.get(sumPackets(tempBuffer) - 1).contains(dstPeer) ){
+            System.out.println("Dst Peer doesn't exists to delete");
+        }
         PeerNumberOfPktsArray.get(sumPackets(tempBuffer) - 1).remove(dstPeer);
         PeerNumberOfPktsArray.get(sumPackets(tempBuffer)).add(dstPeer);
 
@@ -1171,7 +1182,9 @@ public class P2PSimulation {
     private boolean assertMetaVariables(){
         int sum = 0;
         for(int count:bufferDistributionCount){
-            if(count < 0) System.out.println("Assert Failed: Buffer Distribution Count negative");
+            if(count < 0) {
+                System.out.println("Assert Failed: Buffer Distribution Count negative");
+            }
             sum = sum + count;
         }
 

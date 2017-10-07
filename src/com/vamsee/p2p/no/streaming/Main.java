@@ -11,9 +11,9 @@ public class Main {
         double mu= U;
         String outputDir = args[0];
         P2PSimulation simulation = new P2PSimulation(U, lambda, mu, outputDir);
-//        String[] policyList = { "StrictLocalMode","BoostedRarest","Random",  "Friedman", "ModeSup",  "CommonChunk", "GroupSup"};
-        String[] policyList = { "StrictLocalMode", "Friedman",  "GroupSup", "ModeSup", "CommonChunk", "DistrModeSup", "Rarest" ,"Random" };
-//        String[] policyList = { };
+//        String[] policyList = {"BoostGroupSup", "ModeSup", "BoostModeSup", "StrictLocalMode",  "Friedman",   "CommonChunk", "GroupSup"};
+//        String[] policyList = { "StrictLocalMode", "Friedman",  "GroupSup", "ModeSup", "CommonChunk", "DistrModeSup", "Rarest" ,"Random" };
+        String[] policyList = { "BoostModeSup"};
         for(String policy : policyList){
             simulation.Run(policy);
         }

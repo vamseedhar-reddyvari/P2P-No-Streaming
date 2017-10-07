@@ -7,7 +7,7 @@ import java.util.Arrays;
  * This is a class for Peer. Contains the status of the buffer array.
  */
 public class Peer {
-    public static int NumberOfPieces = 3;
+    public static int NumberOfPieces = 15;
     public static int[] FullBuffer = new int[NumberOfPieces];
     public static int[] NullBuffer = new int[NumberOfPieces];
     public int[] Buffer;
