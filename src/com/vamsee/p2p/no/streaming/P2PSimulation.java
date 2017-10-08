@@ -21,16 +21,20 @@ public class P2PSimulation {
     private int NumberOfPeers; // Total peers in the system
     private ArrayList<Peer> ListPeers; // List of all current peers
     private int NumberOfChunks; // Buffer length
-    private boolean RANDOM, RAREST,  GROUPSUPP ,BOOST_GROUPSUPP, MODE_SUPPRESSION, BOOST_MODE_SUPPRESSION, DISTR_MODE_SUPPRESSION, CHAIN_POLICY, FRIEDMAN, COMMONCHUNK, RELAXEDMODESUP, BOOSTEDRAREST, STRICTLOCALMODE;
+    private boolean RANDOM, RAREST,  GROUPSUPP ,BOOST_GROUPSUPP, MODE_SUPPRESSION, BOOST_MODE_SUPPRESSION, DISTR_MODE_SUPPRESSION, CHAIN_POLICY, RARECHUNK, COMMONCHUNK, RELAXEDMODESUP, BOOSTEDRAREST, STRICTLOCALMODE, SUPPRRARECHUNK, SUPPRCOMMONCHUNK, SUPPRLOCALMODE;
     private PrintWriter writerNoPeers, writerDistribution, writerTime, writerStarvations, writerCounts;
     private String outputDir;
     private boolean restirctToOnePeer ;
+    private boolean USING_DICT;
+    private int randomSeedInput;
 
     // Meta Variables
     /* - At any time sum of bufferDistributionCount should be equal to Number of Peers.
     - Also sum of dictionary values should also equal to Number of Peers. */
     private int[] marginalPktDistributionCount; // 1xm array of number of Peers that contain a piece - pi|x|
     private int[] bufferDistributionCount; // 1x2^m array of number of peers that contain same pieces - x
+    private HashMap<String,Integer> bufferDistributionCountDict; // 1x2^m array of number of peers that contain same pieces - x
+
     // 1xm+1 Dictionary which maps the number of packets to a list of all peers that contain that many number of packets.
     private ArrayList<ArrayList<Peer> > PeerNumberOfPktsArray; // 1xm+1 Dictionary which maps the number of packets \
 
@@ -50,9 +54,16 @@ public class P2PSimulation {
         marginalPktDistributionCount[0] = 0;
 
 
-        bufferDistributionCount =  new int[(int)pow(2, NumberOfChunks)];
-        Arrays.fill(bufferDistributionCount,0); // As all peers begin with 0 packets distribution will be 0
-        bufferDistributionCount[(int)(pow(2, NumberOfChunks) -2)] = NumberOfPeers; // All peers have 0  packets
+        if(!USING_DICT) {
+            bufferDistributionCount = new int[(int) pow(2, NumberOfChunks)];
+            Arrays.fill(bufferDistributionCount, 0); // As all peers begin with 0 packets distribution will be 0
+            bufferDistributionCount[(int) (pow(2, NumberOfChunks) - 2)] = NumberOfPeers; // All peers have 0  packets
+        }
+        else {
+            bufferDistributionCountDict = new HashMap<String, Integer>();
+            bufferDistributionCountDict.put(Arrays.toString(Peer.OneClubBuffer), NumberOfPeers);
+        }
+
         //Initialize Hashmap
         PeerNumberOfPktsArray = new ArrayList<ArrayList<Peer>>();
         for(int i = 0; i < NumberOfChunks +1; i++) {
@@ -61,6 +72,10 @@ public class P2PSimulation {
         for(int j = 0; j< NumberOfPeers; j++){
             PeerNumberOfPktsArray.get(this.NumberOfChunks -1).add(ListPeers.get(j)); // All peers doesn't have any packets. So 0 packets will map to entire list
         }
+
+
+
+
     }
 
     private void initializeEmptyPeers(){
@@ -72,10 +87,19 @@ public class P2PSimulation {
         }
         // Meta-Variable initialization for one-club state
         marginalPktDistributionCount = new int[NumberOfChunks];
-        bufferDistributionCount =  new int[(int)pow(2, NumberOfChunks)];
+
+
+        if(!USING_DICT){
+            bufferDistributionCount =  new int[(int)pow(2, NumberOfChunks)];
+            Arrays.fill(bufferDistributionCount,0); // As all peers begin with 0 packets distribution will be 0
+            bufferDistributionCount[0] = NumberOfPeers; // All peers have 0  packets
+        }
+        else{
+            bufferDistributionCountDict = new HashMap<String,Integer>();
+            bufferDistributionCountDict.put(Arrays.toString(Peer.NullBuffer),NumberOfPeers);
+        }
+
         Arrays.fill(marginalPktDistributionCount,0); // As all peers begin with 0 packets margianl distribution will be 0
-        Arrays.fill(bufferDistributionCount,0); // As all peers begin with 0 packets distribution will be 0
-        bufferDistributionCount[0] = NumberOfPeers; // All peers have 0  packets
         //Initialize Hashmap
         PeerNumberOfPktsArray = new ArrayList<ArrayList<Peer>>();
         for(int i = 0; i < NumberOfChunks +1; i++) {
@@ -86,10 +110,11 @@ public class P2PSimulation {
         }
     }
     //Constructor
-    public P2PSimulation(double Us, double lambda, double lambda_p, String outputDir) throws IOException{
+    public P2PSimulation(double Us, double lambda, double lambda_p, String outputDir, int seedInput) throws IOException{
 
         // System Variables
         this.restirctToOnePeer = false;
+        this.USING_DICT= true;
         this.NumberOfChunks = Peer.NumberOfPieces;
         this.lambda_p = lambda_p;
         this.Us = Us;
@@ -104,10 +129,11 @@ public class P2PSimulation {
         this.BOOST_MODE_SUPPRESSION = false;
         this.CHAIN_POLICY = false;
         this.DISTR_MODE_SUPPRESSION = false;
-        this.FRIEDMAN = false;
+        this.RARECHUNK = false;
         this.COMMONCHUNK = false;
         this.RELAXEDMODESUP = false;
         this.outputDir = outputDir;
+        this.randomSeedInput = seedInput;
 
         //Initialize Peers
         initializeOneClubPeers();
@@ -115,7 +141,7 @@ public class P2PSimulation {
 
         // Utility Objects
         rand = new Random(); //initialize random
-        rand.setSeed(2345678);
+        rand.setSeed(seedInput);
         //rand.setSeed(0);
 
 
@@ -129,6 +155,12 @@ public class P2PSimulation {
         }
         else{
             System.out.println("Restrict to One Peer Disabled");
+        }
+        if(!USING_DICT){
+            System.out.println("Using Array instead of Dictionary");
+        }
+        else{
+            System.out.println("Using Dictionary");
         }
         // Sanity Check
         assertMetaVariables();
@@ -152,17 +184,20 @@ public class P2PSimulation {
         else if(policy.equals("DistrModeSup")) DISTR_MODE_SUPPRESSION= true;
         else if(policy.equals("GroupSup")) GROUPSUPP= true;
         else if(policy.equals("BoostGroupSup")) BOOST_GROUPSUPP= true;
-        else if(policy.equals("Friedman")) FRIEDMAN= true;
+        else if(policy.equals("RareChunk")) RARECHUNK = true;
         else if(policy.equals("CommonChunk")) COMMONCHUNK= true;
         else if(policy.equals("RelaxedModeSup")) RELAXEDMODESUP = true;
         else if(policy.equals("BoostedRarest")) BOOSTEDRAREST = true;
         else if(policy.equals("StrictLocalMode")) STRICTLOCALMODE= true;
+        else if(policy.equals("SupprRareChunk")) SUPPRRARECHUNK= true;
+        else if(policy.equals("SupprCommonChunk")) SUPPRCOMMONCHUNK= true;
+        else if(policy.equals("SupprLocalMode")) SUPPRLOCALMODE= true;
 
-        writerNoPeers = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"peers.txt", "UTF-8");
-        writerDistribution = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"distribution.txt", "UTF-8");
-        writerTime = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"waitingTime.txt","UTF-8");
-        writerStarvations = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"starvations.txt","UTF-8");
-        writerCounts= new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"buffer_counts.txt","UTF-8");
+        writerNoPeers = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"peers_seed_"+this.randomSeedInput+".txt", "UTF-8");
+        writerDistribution = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"distribution_seed_"+this.randomSeedInput+".txt", "UTF-8");
+        writerTime = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"waitingTime_seed_"+this.randomSeedInput+".txt","UTF-8");
+        writerStarvations = new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"starvations_seed_"+this.randomSeedInput+".txt","UTF-8");
+        writerCounts= new PrintWriter(this.outputDir+"k"+ NumberOfChunks +"lambda"+(int)this.lambda+"/"+policy+"_"+"buffer_counts_seed_"+this.randomSeedInput+".txt","UTF-8");
 
         for(int t = 0; t< Ticks; t++){
 
@@ -214,8 +249,12 @@ public class P2PSimulation {
         MODE_SUPPRESSION = false;
         BOOST_MODE_SUPPRESSION = false;
         DISTR_MODE_SUPPRESSION = false;
-        FRIEDMAN = false;
+        RARECHUNK = false;
         RELAXEDMODESUP = false;
+        SUPPRCOMMONCHUNK = false;
+        SUPPRLOCALMODE = false;
+        SUPPRRARECHUNK = false;
+
         initializeOneClubPeers();
 //        initializeEmptyPeers();
 
@@ -274,7 +313,7 @@ public class P2PSimulation {
             boolean DONT_SELECT_SEED = false;
             int pktIdx = peerDistributedModeSuppression(dstPeer, DONT_SELECT_SEED);
         }
-        else if(FRIEDMAN){
+        else if(RARECHUNK){
             int pktIdx = peerFriedmanPolicy( dstPeer, false );
         }
         else if(COMMONCHUNK){
@@ -284,11 +323,26 @@ public class P2PSimulation {
             boolean DONT_SELECT_SEED = false;
             int pltIdx = peerStrictLocalModeSuppression(dstPeer, DONT_SELECT_SEED);
         }
+        else if(SUPPRRARECHUNK){
+            restirctToOnePeer = true;
+            int pktIdx = peerFriedmanPolicy( dstPeer, false );
+            restirctToOnePeer = false;
+        }
+        else if(SUPPRLOCALMODE){
+            restirctToOnePeer = true;
+            int pltIdx = peerStrictLocalModeSuppression(dstPeer, false);
+            restirctToOnePeer = false;
+
+        }
+        else if(SUPPRCOMMONCHUNK){
+            restirctToOnePeer = true;
+            int pltIdx = peerCommonChunkPolicy(dstPeer );
+            restirctToOnePeer = false;
+
+        }
         else{
             System.out.println("Peer Chunk Policy Not found");
         }
-        // Check if dst Peer has received all the packets. If yes then remove the peer from system
-//        boolean removed = removePeer(dstPeer);
         assertMetaVariables();
     }
     private void arrivalEvent(double timeEpoch){
@@ -299,7 +353,20 @@ public class P2PSimulation {
         this.ListPeers.add(newPeer);
         NumberOfPeers = NumberOfPeers +1;
         //update Distribution
-        bufferDistributionCount[0] += 1;
+
+        if(!USING_DICT) {
+            bufferDistributionCount[0] += 1;
+        }
+        else {
+
+            if (bufferDistributionCountDict.containsKey(Arrays.toString(Peer.NullBuffer))) {
+                int prevCount = bufferDistributionCountDict.get(Arrays.toString(Peer.NullBuffer));
+                bufferDistributionCountDict.put(Arrays.toString(Peer.NullBuffer), prevCount + 1);
+            } else {
+                bufferDistributionCountDict.put(Arrays.toString(Peer.NullBuffer), 1);
+            }
+        }
+
         PeerNumberOfPktsArray.get(0).add(newPeer);
         assertMetaVariables();
         writerNoPeers.println(NumberOfPeers);
@@ -323,7 +390,7 @@ public class P2PSimulation {
         updateTime(timeEpoch);
         int dstPeerIdx=0;
         Peer dstPeer = ListPeers.get(dstPeerIdx);
-        if (RAREST || RANDOM || MODE_SUPPRESSION || DISTR_MODE_SUPPRESSION || FRIEDMAN || RELAXEDMODESUP ||COMMONCHUNK || BOOSTEDRAREST || STRICTLOCALMODE || BOOST_MODE_SUPPRESSION) {
+        if (RAREST || RANDOM || MODE_SUPPRESSION || DISTR_MODE_SUPPRESSION || RARECHUNK || RELAXEDMODESUP ||COMMONCHUNK || BOOSTEDRAREST || STRICTLOCALMODE || BOOST_MODE_SUPPRESSION || SUPPRCOMMONCHUNK || SUPPRLOCALMODE || SUPPRRARECHUNK) {
             dstPeerIdx = rand.nextInt(NumberOfPeers);
             dstPeer = ListPeers.get(dstPeerIdx);
         }
@@ -360,7 +427,7 @@ public class P2PSimulation {
         else if (DISTR_MODE_SUPPRESSION){
             int pktIdx = peerDistributedModeSuppression(dstPeer, SELECT_SEED);
         }
-        else if(FRIEDMAN){
+        else if(RARECHUNK){
             int pktIdx = peerFriedmanPolicy( dstPeer, SELECT_SEED);
         }
         else if(COMMONCHUNK){
@@ -368,6 +435,23 @@ public class P2PSimulation {
         }
         else if(STRICTLOCALMODE){
             int pktIdx = peerStrictLocalModeSuppression(dstPeer,SELECT_SEED);
+        }
+        else if(SUPPRRARECHUNK){
+            restirctToOnePeer = true;
+            int pktIdx = peerFriedmanPolicy( dstPeer, true);
+            restirctToOnePeer = false;
+        }
+        else if(SUPPRLOCALMODE){
+            restirctToOnePeer = true;
+            int pltIdx = peerStrictLocalModeSuppression(dstPeer, true);
+            restirctToOnePeer = false;
+
+        }
+        else if(SUPPRCOMMONCHUNK){
+            restirctToOnePeer = true;
+            int pltIdx = seedCommonChunkPolicy(dstPeer );
+            restirctToOnePeer = false;
+
         }
         else{
             System.out.println("Seed Policy Not found");
@@ -570,18 +654,40 @@ public class P2PSimulation {
         // Determine largestbuffer
         int largestBuffer = 1;
         int largestValue = 0;
+        String largestBufferS = "";
+        int largestValue2 = 0;
+
         // Ignore the group with no packets in finding the largest group
-        for(int i=1; i< bufferDistributionCount.length;i++){
-            int newvalue = bufferDistributionCount[i];
-            if (newvalue > largestValue){
-                largestValue = newvalue;
-                largestBuffer = i;
+        if(!USING_DICT) {
+            for (int i = 0; i < bufferDistributionCount.length; i++) {
+                int newvalue = bufferDistributionCount[i];
+                if (newvalue > largestValue) {
+                    largestValue = newvalue;
+                    largestBuffer = i;
+                }
+            }
+        if(toDecimal(src) == largestBuffer){
+            if (sumPackets(dst) < sumPackets(src)) {
+                updateStarvationBuffer(ListPeers.get(srcIdx), dstPeer.Buffer, -1);
+                return -1; // abandoning the transfer to avoid single club
             }
         }
-        if(toDecimal(src) == largestBuffer){
-            if (sumPackets(dst) < sumPackets(src) ){
-                updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, -1);
-                return -1; // abandoning the transfer to avoid single club
+
+        }
+        else {
+            for (String bufferCandidate : bufferDistributionCountDict.keySet()) {
+                int count = bufferDistributionCountDict.get(bufferCandidate);
+                if (count > largestValue2) {
+                    largestBufferS = bufferCandidate;
+                    largestValue2 = count;
+                }
+
+            }
+            if (largestBufferS.equals(Arrays.toString(src))) {
+                if (sumPackets(dst) < sumPackets(src)) {
+                    updateStarvationBuffer(ListPeers.get(srcIdx), dstPeer.Buffer, -1);
+                    return -1; // abandoning the transfer to avoid single club
+                }
             }
         }
 
@@ -627,18 +733,39 @@ public class P2PSimulation {
         // Determine largestbuffer
         int largestBuffer = 1;
         int largestValue = 0;
+        String largestBufferS = "";
+        int largestValue2 = 0;
         // Ignore the group with no packets in finding the largest group
-        for(int i=1; i< bufferDistributionCount.length;i++){
-            int newvalue = bufferDistributionCount[i];
-            if (newvalue > largestValue){
-                largestValue = newvalue;
-                largestBuffer = i;
+
+        if(!USING_DICT) {
+            for (int i = 1; i < bufferDistributionCount.length; i++) {
+                int newvalue = bufferDistributionCount[i];
+                if (newvalue > largestValue) {
+                    largestValue = newvalue;
+                    largestBuffer = i;
+                }
+            }
+            if (toDecimal(src) == largestBuffer) {
+                if (sumPackets(dst) < sumPackets(src)) {
+                    updateStarvationBuffer(ListPeers.get(srcIdx), dstPeer.Buffer, -1);
+                    return -1; // abandoning the transfer to avoid single club
+                }
             }
         }
-        if(toDecimal(src) == largestBuffer){
-            if (sumPackets(dst) < sumPackets(src) ){
-                updateStarvationBuffer(ListPeers.get(srcIdx),dstPeer.Buffer, -1);
-                return -1; // abandoning the transfer to avoid single club
+        else {
+            for (String bufferCandidate : bufferDistributionCountDict.keySet()) {
+                int count = bufferDistributionCountDict.get(bufferCandidate);
+                if (count > largestValue2) {
+                    largestBufferS = bufferCandidate;
+                    largestValue2 = count;
+                }
+
+            }
+            if (largestBufferS.equals(Arrays.toString(src))) {
+                if (sumPackets(dst) < sumPackets(src)) {
+                    updateStarvationBuffer(ListPeers.get(srcIdx), dstPeer.Buffer, -1);
+                    return -1; // abandoning the transfer to avoid single club
+                }
             }
         }
 
@@ -1096,40 +1223,33 @@ public class P2PSimulation {
             for(int i = 0; i < NumberOfChunks; i++){
                 marginalPktDistributionCount[i] = marginalPktDistributionCount[i] -1;
             }
-            bufferDistributionCount[toDecimal(Peer.FullBuffer)] = bufferDistributionCount[toDecimal(Peer.FullBuffer)] -1;
+
+
+            if(!USING_DICT){
+
+                bufferDistributionCount[toDecimal(Peer.FullBuffer)] = bufferDistributionCount[toDecimal(Peer.FullBuffer)] -1;
+            }
+            else{
+
+                if(bufferDistributionCountDict.containsKey(Arrays.toString(Peer.FullBuffer))){
+                    int prevCount = bufferDistributionCountDict.get(Arrays.toString(Peer.FullBuffer) );
+                    bufferDistributionCountDict.put(Arrays.toString(Peer.FullBuffer),prevCount-1);
+                    if(prevCount-1 == 0){
+                       bufferDistributionCountDict.remove(Arrays.toString(Peer.FullBuffer));  // Why are we removing FullBuffer???? Why?????????
+                    }
+
+                }
+            }
+
+
             PeerNumberOfPktsArray.get(NumberOfChunks).remove(dstPeer);
             writerTime.println(dstPeer.time);
             writerStarvations.println(dstPeer.suppressionArray[0] + " "+dstPeer.suppressionArray[1] + " "+ dstPeer.suppressionArray[2] + " "+dstPeer.suppressionArray[3] );
 
-            if(NumberOfChunks ==3){
-                int[] T_i_bar_array = {0,1,1};
-                int[] T_i_array2 = {1,0,1};
-                int[] T_i_array3 = {1,1,0};
-                int T_i_bar = bufferDistributionCount[toDecimal(T_i_bar_array)] + bufferDistributionCount[toDecimal(T_i_array2)] + bufferDistributionCount[toDecimal(T_i_array3)];
-                int[] S_i_array1 = {1,0,1};
-                int[] S_i_array2 = {1,0,0};
-                int[] S_i_array3 = {1,1,0};
-                int S_i = bufferDistributionCount[toDecimal(S_i_array1)] + bufferDistributionCount[toDecimal(S_i_array2)] + bufferDistributionCount[toDecimal(S_i_array3)];
-                int[] S_zero_array = {0,0,0};
-                int S_zero = bufferDistributionCount[toDecimal(S_zero_array)] ;
-                int[] D_i_array1 = {0,0,1};
-                int[] D_i_array2 = {0,1,0};
-                int[] D_i_array3 = {1,0,0};
-                int D_i = bufferDistributionCount[toDecimal(D_i_array1)] + bufferDistributionCount[toDecimal(D_i_array2)] +  bufferDistributionCount[toDecimal(D_i_array3)];
-
-                writerCounts.print("T_bar_i:"+T_i_bar+" S_i:"+S_i+" S_0:"+ S_zero + " D_bar_i:"+D_i+"\n");
-            }
-            else if(NumberOfChunks == 2){
-                int[] T_i_bar_array = {0,1};
-                int T_i_bar = bufferDistributionCount[toDecimal(T_i_bar_array)];
-                int[] S_i_array1 = {1,0};
-                int S_i = bufferDistributionCount[toDecimal(S_i_array1)] ;
-                int[] S_zero_array = {0,0};
-                int S_zero = bufferDistributionCount[toDecimal(S_zero_array)] ;
-                int D_i = 0;
-
-                writerCounts.print("T_bar_i:"+T_i_bar+" S_i:"+S_i+" S_0:"+ S_zero + " D_bar_i:"+D_i+"\n");
-            }
+//            if(NumberOfChunks ==3){
+//                int D_i = bufferDistributionCount[toDecimal(D_i_array1)] ;
+//                writerCounts.print("T_bar_i:"+T_i_bar+" S_i:"+S_i+" S_0:"+ S_zero + " D_bar_i:"+D_i+"\n");
+//            }
 
             return true; // Peer is removed
         }
@@ -1147,13 +1267,42 @@ public class P2PSimulation {
         PeerNumberOfPktsArray.get(sumPackets(tempBuffer)).add(dstPeer);
 
 
-        int[] dst = dstPeer.Buffer;
+        int[] dstCopy = new int[NumberOfChunks];
+        for(int i=0;i < NumberOfChunks;i++){
+            dstCopy[i] = dstPeer.Buffer[i];
+        }
         // update distribution
         marginalPktDistributionCount[pktIdx] = (marginalPktDistributionCount[pktIdx] +1);
-        int dstDecimalValue = toDecimal(dst);
-        bufferDistributionCount[dstDecimalValue] = (bufferDistributionCount[dstDecimalValue] +1 );
-        dstDecimalValue = dstDecimalValue - (int)pow(2,pktIdx);
-        bufferDistributionCount[dstDecimalValue] = (bufferDistributionCount[dstDecimalValue] -1 );
+
+
+        if(!USING_DICT){
+            int dstDecimalValue = toDecimal(dstCopy);
+            bufferDistributionCount[dstDecimalValue] = (bufferDistributionCount[dstDecimalValue] +1 );
+            dstDecimalValue = dstDecimalValue - (int)pow(2,pktIdx);
+            bufferDistributionCount[dstDecimalValue] = (bufferDistributionCount[dstDecimalValue] -1 );
+
+        }
+        else{
+            if(bufferDistributionCountDict.containsKey(Arrays.toString(dstCopy))){
+                int prevCount = bufferDistributionCountDict.get(Arrays.toString(dstCopy) );
+                bufferDistributionCountDict.put(Arrays.toString(dstCopy),prevCount+1);
+            }
+            else{
+                bufferDistributionCountDict.put(Arrays.toString(dstCopy),1);
+
+            }
+            dstCopy[pktIdx] = 0; // Buffer before adding pktIdx
+            if(bufferDistributionCountDict.containsKey(Arrays.toString(dstCopy))){
+                int prevCount = bufferDistributionCountDict.get(Arrays.toString(dstCopy) );
+                bufferDistributionCountDict.put(Arrays.toString(dstCopy),prevCount-1);
+                if(prevCount-1 == 0){
+                    bufferDistributionCountDict.remove(Arrays.toString(dstCopy));  // Why are we removing FullBuffer???? Why?????????
+                }
+            }
+            else{
+                System.out.println(" Error in bufferDistributionCount HashMap");
+            }
+        }
 
     }
 
@@ -1180,19 +1329,36 @@ public class P2PSimulation {
         return  Math.log(1-rand.nextDouble())/(-lambda);
     }
     private boolean assertMetaVariables(){
+        int sum1 = 0;
         int sum = 0;
-        for(int count:bufferDistributionCount){
-            if(count < 0) {
-                System.out.println("Assert Failed: Buffer Distribution Count negative");
+
+        if(!USING_DICT){
+
+            for(int count:bufferDistributionCount){
+                if(count < 0) {
+                    System.out.println("Assert Failed: Buffer Distribution Count negative");
+                }
+                sum = sum + count;
             }
-            sum = sum + count;
+            if (sum != NumberOfPeers ){
+                System.out.println("Assert Failed: Buffer Distribution Sum");
+                return false;
+            }
         }
 
-        if (sum != NumberOfPeers) {
-            System.out.println("Assert Failed: Buffer Distribution Sum");
-            return false;
-        }
+        else {
+            for (int count : bufferDistributionCountDict.values()) {
+                if (count < 0) {
+                    System.out.println("Assert Failed: Buffer Distribution Count negative");
+                }
+                sum1 = sum1 + count;
+            }
+            if (sum1 != NumberOfPeers) {
+                System.out.println("Assert Failed: Buffer Distribution Sum");
+                return false;
+            }
 
+        }
         sum = 0;
         for(ArrayList value: PeerNumberOfPktsArray){
             sum = sum + value.size();
@@ -1217,6 +1383,22 @@ public class P2PSimulation {
         for(Peer eachPeer: ListPeers){
             eachPeer.time = eachPeer.time+ timeEpoch;
         }
+    }
+    private String dectoString(int decimalValue){
+
+        int[] buffer = new int[NumberOfChunks];
+
+        int q = decimalValue;
+        for(int i=0; i< NumberOfChunks;i++){
+            int r = q%2;
+            q = q/2;
+            buffer[i] = r;
+        }
+
+        String bufferString= new String();
+        bufferString = Arrays.toString(buffer);
+        return bufferString;
+
     }
 
     /* Matches in Distributed Algorithms */

@@ -10,12 +10,15 @@ public class Main {
         double lambda = 4;
         double mu= U;
         String outputDir = args[0];
-        P2PSimulation simulation = new P2PSimulation(U, lambda, mu, outputDir);
-//        String[] policyList = {"BoostGroupSup", "ModeSup", "BoostModeSup", "StrictLocalMode",  "Friedman",   "CommonChunk", "GroupSup"};
-//        String[] policyList = { "StrictLocalMode", "Friedman",  "GroupSup", "ModeSup", "CommonChunk", "DistrModeSup", "Rarest" ,"Random" };
-        String[] policyList = { "BoostModeSup"};
-        for(String policy : policyList){
-            simulation.Run(policy);
+        int[] seedsList = {10,2000,4000,4234,43204,43924,391,28392,45,789};
+        for(int randomSeed: seedsList){
+            P2PSimulation simulation = new P2PSimulation(U, lambda, mu, outputDir, randomSeed);
+            String[] policyList = { "GroupSup","BoostGroupSup", "ModeSup", "BoostModeSup", "StrictLocalMode",   "SupprLocalMode",  "RareChunk",  "SupprRareChunk", "CommonChunk", "SupprCommonChunk"};
+            //String[] policyList = { "StrictLocalMode", "Friedman",  "GroupSup", "ModeSup", "CommonChunk", "DistrModeSup", "Rarest" ,"Random" };
+            //String[] policyList = {  "SupprRareChunk"};
+            for(String policy : policyList){
+                simulation.Run(policy);
+            }
         }
     }
 }
