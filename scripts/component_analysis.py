@@ -30,7 +30,6 @@ def read_buffer_counts(file_name):
             return (T_bar_i_list,S_i_list,S_0_list,D_bar_i_list)
     return (T_bar_i_list,S_i_list,S_0_list,D_bar_i_list)
 
-
 COMPONENT_ANALYSIS = True
 if(COMPONENT_ANALYSIS):
 

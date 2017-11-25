@@ -7,10 +7,10 @@ import java.util.Arrays;
  * This is a class for Peer. Contains the status of the buffer array.
  */
 public class Peer {
-    public static int NumberOfPieces = 40;
-    public static int[] FullBuffer = new int[NumberOfPieces];
-    public static int[] NullBuffer = new int[NumberOfPieces];
-    public static int[] OneClubBuffer = new int[NumberOfPieces];
+    public int NumberOfPieces ;
+    public static int[] FullBuffer;
+    public static int[] NullBuffer ;
+    public static int[] OneClubBuffer;
     public int[] Buffer;
     public double time;
 
@@ -24,6 +24,9 @@ public class Peer {
 
 
     private void initializeConstants(){
+        FullBuffer = new int[NumberOfPieces];
+        NullBuffer = new int[NumberOfPieces];
+        OneClubBuffer = new int[NumberOfPieces];
         Arrays.fill(FullBuffer,1);
         Arrays.fill(NullBuffer,0);
         Arrays.fill(OneClubBuffer,1);
@@ -33,7 +36,8 @@ public class Peer {
      *  - one for oneClub
      *  - other for empty peers
      */
-    public Peer(boolean OneClub){
+    public Peer(boolean OneClub, int number){
+        this.NumberOfPieces = number;
         initializeConstants();
         Buffer = new int[NumberOfPieces];
         for(int i = 0; i< NumberOfPieces; i++){
@@ -50,7 +54,8 @@ public class Peer {
         suppressionArray = new int[4];
         Arrays.fill(suppressionArray,0);
     }
-    public Peer(){
+    public Peer(int number){
+        this.NumberOfPieces = number;
         initializeConstants();
         Buffer = new int[NumberOfPieces];
         for(int i = 0; i< NumberOfPieces; i++){
