@@ -87,43 +87,48 @@ if(RANDOM_EVOLUTION):
 
 BUFFEREVOL = False
 if(BUFFEREVOL):
-    list_policies =[ r"Random", r"Rare Chunk",r"Group Suppression",   r"Mode Suppression", r"Threshold ModeSup"  ]
-    list2= ["Random",  "RareChunk", "GroupSup",   "ModeSup",  "T6-ThModeSup"]
+    list_policies =[ r"Random",r"Rarest First", r"Rare Chunk","Common Chunk",r"Group Suppression",   r"Mode Suppression", r"DMS"  ,"MS-EWMA"]
+    list2= ["Random", "Rarest", "RareChunk","CommonChunk", "GroupSup", "ModeSup",  "StrictLocalMode", "EWMAModeSup" ]
     labels2 =list_policies
 
-    fig,((ax1,ax2,ax3),(ax4,ax5,ax6))= plt.subplots(2,3,figsize=(12,7),sharex=False,sharey=True)
-    axes = [ax1,ax2,ax3,ax4,ax5,ax6]
+    fig,((ax1,ax2,ax3,ax4),(ax5,ax6,ax7,ax8))= plt.subplots(2,4,figsize=(12,7),sharex=True,sharey=True)
+    axes = [ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8]
 
     colors=['red','palevioletred','darkcyan','mediumseagreen', 'slategray']
 
-    for i in range(5):
-        lambda_value = 5
-        file_name = External_Data_Folder + "k5lambda4/" + list2[i] + "_distribution_seed_10.txt"
-        buffer_distribution = read_distribution(file_name,5)
+    for i in range(len(list2)):
+        # lambda_value = 5
+        m=5
+        # file_name = External_Data_Folder + "k5lambda4/" + list2[i] + "_distribution_seed_10.txt"
+        file_name = External_Data_Folder + "m5/" + "lambda30-"+list2[i] + "_distribution_seed_10.txt"
+        buffer_distribution = read_distribution(file_name,m)
         ax = axes[i]
         idx = 0
-        for elem in range(lambda_value):
+        for elem in range(m):
             if(idx == 0):
                 ax.plot(list(buffer_distribution[:,elem]),'--',color=colors[idx],alpha = 0.85,linewidth=2)
             else:
                 ax.plot(list(buffer_distribution[:,elem]),color=colors[idx],alpha = 0.85,linewidth=2)
 
             idx= idx+1
-        ax.set_xlim([0,2000])
-        ax.set_ylim([-0.02,1])
+        ax.set_xlim([0,6000])
+        ax.set_ylim([-0.01,1])
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-        ax.text(0.35, 0.9, labels2[i], transform=ax.transAxes, fontsize=13, verticalalignment='top', bbox=props)
+        ax.text(0.2, 0.9, labels2[i], transform=ax.transAxes, fontsize=13, verticalalignment='top', bbox=props)
+        ax.grid(True)
 
+    axes[4].set_xlim([0,9000])
     axes[0].set_ylabel("Chunk Frequency",fontsize=13)
-    axes[3].set_ylabel("Chunk Frequency",fontsize=13)
+    axes[4].set_ylabel("Chunk Frequency",fontsize=13)
     axes[4].set_xlabel("Time",fontsize=14)
-    axes[3].set_xlabel("Time",fontsize=14)
-    axes[2].set_xlabel("Time",fontsize=14)
+    axes[5].set_xlabel("Time",fontsize=14)
+    axes[6].set_xlabel("Time",fontsize=14)
+    axes[7].set_xlabel("Time",fontsize=14)
 
-    plt.sca(ax6)
-    plt.axis('off')
-    props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
-    ax6.text(0.25, 0.6, "$\lambda = 4, m=5$\n $U =1, \mu = 1$", transform=ax6.transAxes, fontsize=16, verticalalignment='top', bbox=props)
+    # plt.sca(ax6)
+    # plt.axis('off')
+    # props = dict(boxstyle='round', facecolor='blue', alpha=0.3)
+    # ax6.text(0.25, 0.6, "$\lambda = 4, m=5$\n $U =1, \mu = 1$", transform=ax6.transAxes, fontsize=16, verticalalignment='top', bbox=props)
 
     plt.tight_layout()
     plt.savefig(RESULTS_FOLDER_NAME+"new-marginal-buffer-evolution.pdf",dpi=300);
@@ -165,19 +170,16 @@ def mean_waiting_times(folder_name,stability_time,list_policies,ending_time = po
     std_sojourn_times = []
     for policy in list_policies:
         waiting_time = []
-        for seed in seedsList[0:3]:
+        for seed in seedsList[0:1]:
             file_name = folder_name+ policy+"_waitingTime_seed_"+str(seed)+".txt"
             waiting_time = waiting_time+ read_wait_times(file_name, stability_time, ending_time)
         mean_sojourn_times.append(np.mean(waiting_time))
         std_sojourn_times.append(np.std(waiting_time))
     return mean_sojourn_times,[0.85*x for x in  std_sojourn_times]
 
-SOJURNHIST_RESTRICT_ONE_PEER = True
 lamb =30
-
-
-
-if(SOJURNHIST_RESTRICT_ONE_PEER):
+SOJURNHIST_Stationary= False
+if(SOJURNHIST_Stationary):
     Stability_Time = 3000
 
 
@@ -238,8 +240,8 @@ if(SOJURNHIST_RESTRICT_ONE_PEER):
     plt.tight_layout()
     plt.savefig(RESULTS_FOLDER_NAME+"Sojourn-DMS-Stationary-lambda-"+str(lamb)+".pdf",dpi=300)
 
-SOJURNHIST_BOOST_THREE_PEERS= True
-if(SOJURNHIST_BOOST_THREE_PEERS):
+SOJURNHIST_Mixing= False
+if(SOJURNHIST_Mixing):
 
     fig,(ax1,ax2)= plt.subplots(2,1,figsize=(14,10),sharey=True)
     colors = ['lightsteelblue', 'tomato','violet','mediumseagreen','blue','gray']
@@ -302,6 +304,73 @@ if(SOJURNHIST_BOOST_THREE_PEERS):
 
     plt.tight_layout()
     plt.savefig(RESULTS_FOLDER_NAME+"Sojourn-DMS-Mixing-lambda-"+str(lamb)+".pdf",dpi=300)
+
+
+SOJURNHIST_3_Peers= True
+if(SOJURNHIST_3_Peers):
+
+    fig,(ax1,ax2)= plt.subplots(2,1,figsize=(14,10),sharey=True)
+    colors = ['lightsteelblue', 'tomato','violet','mediumseagreen','blue','gray']
+    ecolors = ['blue', 'red','pink','darkgreen','darkblue','black']
+
+    ax = ax1
+    list_file_sizes = [2,10,15,25,30,40 ];
+    # list_folders = [External_Data_Folder+"k"+str(m) + "lambda"+str(lamb)+"/" for m in list_file_sizes]
+    list_folders = [External_Data_Folder+"m"+str(m) +"/"+ "lambda"+str(lamb)+"-" for m in list_file_sizes]
+    # labels = [  "Mode Suppr-1","Group Suppr-1", "DMS-1","Rare Chunk-1", "Common Chunk-1", "Threshold Mode-1" ]
+    # list_policy_names = ["ModeSup","GroupSup", "SupprLocalMode", "SupprRareChunk", "SupprCommonChunk", "ThModeSup" ]
+
+    labels = [  "RC-1","CC-1","DMS-1","GS-1","MS-1" ,"MS-EWMA-1"]
+    list_policy_names = ["SupprRareChunk", "SupprCommonChunk","SupprLocalMode","GroupSup", "ModeSup","EWMAModeSup"  ]
+    width=0.15
+    rects = list(range(len(list_folders)))
+    for idx in range(len(list_folders)):
+        beginning_time = 0
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(list_folders[idx],beginning_time,list_policy_names )
+        rects[idx] = ax.bar([x+(1+idx)*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color=colors[idx],yerr=std_sojourn_times,alpha=0.75,ecolor=ecolors[idx])
+
+    ax.legend(tuple(rects), ('$m=2$','$m=10$','$m=15$','$m=25$','$m=30$','$m=40$'),fontsize=20,loc=1)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    # ax.text(0.35, 0.95, r"$\lambda = 4, \;\mu =1,\; U =1$", transform=ax.transAxes, fontsize=16, verticalalignment='top', bbox=props)
+    ax.text(0.35, 0.95, "$\lambda = $"+str(lamb)+"$, \;\mu =1,\; U =1$", transform=ax.transAxes, fontsize=24, verticalalignment='top', bbox=props)
+    # ax.set_xlabel(xlabel='Policy',fontsize=16)
+    ax.set_ylabel("Mean Sojourn Time",fontsize=24)
+    plt.sca(ax1)
+    plt.xticks([x+0.55 for x in range(1,len(labels)+1)],labels,fontsize=24)
+
+
+    ax = ax2
+    # list_folders = [External_Data_Folder+"k"+str(m) + "lambda"+str(lamb)+"/" for m in list_file_sizes]
+    # labels = [  "Mode Suppr-3","Group Suppr-3", "DMS-3","Rare Chunk-3", "Common Chunk-3", "Threshold Mode-3" ]
+    # list_policy_names = ["BoostModeSup","BoostGroupSup", "StrictLocalMode", "RareChunk", "CommonChunk", "BoostThMode" ]
+
+    # labels = [  "Rare Chunk-3","Common Chunk-3","DMS-3","Group Suppr-3","Mode Suppr-3" ,"ModeSup(EWMA)-3"]
+    labels = [  "RC-3","CC-3","DMS-3","GS-3","MS-3" ,"MS-EWMA-3"]
+    list_policy_names = ["RareChunk", "CommonChunk","StrictLocalMode","BoostGroupSup", "BoostModeSup","BoostEWMAModeSup"  ]
+
+    rects = list(range(len(list_folders)))
+
+    for idx in range(len(list_folders)):
+        Starting_time = 0
+        # ending_time = 1000
+        mean_sojourn_times,std_sojourn_times = mean_waiting_times(list_folders[idx],Starting_time,list_policy_names)
+        rects[idx] = ax.bar([x+(1.5+idx)*width for x in range(1,len(labels)+1)],mean_sojourn_times,width,color=colors[idx],yerr=std_sojourn_times,alpha=0.75,ecolor=ecolors[idx])
+
+    ax.legend(tuple(rects), ('$m=2$','$m=10$','$m=15$','$m=25$','$m=30$','$m=40$'),fontsize=20,loc=1)
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    # ax.text(0.35, 0.95, r"$\lambda = 4, \;\mu =1,\; U =1$", transform=ax.transAxes, fontsize=16, verticalalignment='top', bbox=props)
+    ax.text(0.35, 0.95, "$\lambda = $"+str(lamb)+"$, \;\mu =1,\; U =1$", transform=ax.transAxes, fontsize=24, verticalalignment='top', bbox=props)
+
+    # ax.set_xlabel(xlabel='Policy',fontsize=16)
+    ax.set_ylabel("Mean Sojourn Time",fontsize=24)
+    plt.sca(ax)
+    plt.xticks([x+0.55 for x in range(1,len(labels)+1)],labels,fontsize=24)
+    ax.set_ylim([0,90])
+
+
+    plt.tight_layout()
+    plt.savefig(RESULTS_FOLDER_NAME+"Sojourn-EWMA"+str(lamb)+".pdf",dpi=300)
+
 
 def mean_number_users(folder_name,stability_time,list_policies):
     mean_sojourn_times = []

@@ -21,7 +21,7 @@ public class Peer {
      * 4. # times a pkt is available but not transfer due to policy
      */
     public int[] suppressionArray;
-
+    public double[] ewmaMarginalDistribution;
 
     private void initializeConstants(){
         FullBuffer = new int[NumberOfPieces];
@@ -38,6 +38,10 @@ public class Peer {
      */
     public Peer(boolean OneClub, int number){
         this.NumberOfPieces = number;
+
+        // Assume uniform distribution
+        ewmaMarginalDistribution = new double[NumberOfPieces];
+        Arrays.fill(ewmaMarginalDistribution,0.0);
         initializeConstants();
         Buffer = new int[NumberOfPieces];
         for(int i = 0; i< NumberOfPieces; i++){
@@ -56,6 +60,9 @@ public class Peer {
     }
     public Peer(int number){
         this.NumberOfPieces = number;
+        ewmaMarginalDistribution = new double[NumberOfPieces];
+        Arrays.fill(ewmaMarginalDistribution,0.0);
+
         initializeConstants();
         Buffer = new int[NumberOfPieces];
         for(int i = 0; i< NumberOfPieces; i++){
@@ -65,6 +72,14 @@ public class Peer {
         time = 0;
         suppressionArray = new int[4];
         Arrays.fill(suppressionArray,0);
+    }
+    public void updateMovingAvg( Peer contactedPeer) {
+        double ALPHA = 0.93;
+        for(int i=0; i< NumberOfPieces;i++){
+            ewmaMarginalDistribution[i] = ALPHA*ewmaMarginalDistribution[i] + (1-ALPHA)*contactedPeer.Buffer[i];
+
+        }
+
     }
 
 }
